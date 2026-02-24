@@ -1,0 +1,3 @@
+Você prefere investir em ações ou imóveis?|ações|imóveis
+Qual é mais arriscado: poupança ou criptomoedas?|poupança|criptomoedas
+Você gosta de planejamento financeiro de longo prazo?|sim|não

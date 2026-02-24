@@ -1,0 +1,6 @@
+O que é um Private Equity?|Investimento em empresas não listadas|Compra de ações na bolsa|Investimento em títulos públicos|Moeda estrangeira|Fundo de renda fixa
+O que é um derivativo?|Contrato derivado de um ativo|Ação preferencial|Título de dívida|Fundo imobiliário|ETF
+O que é alavancagem?|Uso de capital emprestado para investir|Redução de risco|Diversificação|Investimento conservador|Poupança
+Qual o objetivo de um hedge?|Proteção contra riscos|Aumentar retornos|Comprar barato e vender caro|Pagar dívidas|Reduzir impostos
+O que é um IPO?|Oferta Pública Inicial|Fundo de investimento|Tipo de derivativo|Fusão de empresas|Aquisição
+O que é um índice de Sharpe?|Mede o retorno ajustado ao risco|Taxa de administração|Imposto sobre ganhos|Taxa de juros|Taxa de inflação

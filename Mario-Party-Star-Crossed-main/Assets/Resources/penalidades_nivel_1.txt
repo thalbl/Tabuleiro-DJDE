@@ -1,0 +1,6 @@
+ReduzirSalario|300
+GastarDinheiro|800
+PerderMoedas|2
+ReduzirSalario|250
+GastarDinheiro|600
+PerderMoedas|1

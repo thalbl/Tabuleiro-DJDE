@@ -1,0 +1,7 @@
+ReduzirSalario|2000
+GastarDinheiro|10000
+PerderMoedas|5
+Demissao
+ReduzirSalario|1800
+GastarDinheiro|8000
+PerderMoedas|4

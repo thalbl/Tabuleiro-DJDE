@@ -1,0 +1,7 @@
+AumentarSalario|800
+GanharMoedasDinheiro|4|2000
+GanharDinheiro|4000
+Promocao
+AumentarSalario|700
+GanharMoedasDinheiro|3|1500
+GanharDinheiro|3000

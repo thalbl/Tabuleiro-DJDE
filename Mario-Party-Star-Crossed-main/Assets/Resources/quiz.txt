@@ -1,0 +1,3 @@
+dQual é a capital da França?|Paris|Londres|Berlim|Madri|Paris
+Quanto é 2 + 2?|4|3|5|4|6
+Qual é o maior planeta do sistema solar?|Júpiter|Saturno|Terra|Marte|Júpiter
