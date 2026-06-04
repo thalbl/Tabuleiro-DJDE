@@ -76,12 +76,11 @@ public class BoardManager : MonoBehaviour {
     void Update() {
         if (gameEnded) return;
 
-        // Atualiza coloca��o dos jogadores
+        // Atualiza colocação dos jogadores pela pontuação composta
         foreach (PlayerState pA in players) {
             pA.setPlacing(1);
             foreach (PlayerState pB in players) {
-                if (pA != pB && (pB.getStars() > pA.getStars() ||
-                   (pA.getStars() == pB.getStars() && pB.getCoins() > pA.getCoins()))) {
+                if (pA != pB && pB.GetFinalScore() > pA.GetFinalScore()) {
                     pA.setPlacing(pA.getPlacing() + 1);
                 }
             }
@@ -204,9 +203,9 @@ public class BoardManager : MonoBehaviour {
     private void EndGame() {
         gameEnded = true;
 
-        // Ordenar jogadores por nivel de carreira
+        // Ordenar jogadores pela pontuação composta final
         List<PlayerState> rankedPlayers = new List<PlayerState>(players);
-        rankedPlayers.Sort((a, b) => b.GetCareerLevel().CompareTo(a.GetCareerLevel()));
+        rankedPlayers.Sort((a, b) => b.GetFinalScore().CompareTo(a.GetFinalScore()));
 
         // Determinar quantidade real de jogadores
         int activePlayers = 0;
@@ -224,12 +223,11 @@ public class BoardManager : MonoBehaviour {
             if (player != null) {
                 PlayerPrefs.SetString($"Player{position}Name", player.charName());
                 PlayerPrefs.SetInt($"Player{position}Money", player.getCoins());
-
-                // Salvar a carreira formatada em vez de componentes separados
                 PlayerPrefs.SetString($"Player{position}Career", player.GetFormattedCareerLevel());
-
                 PlayerPrefs.SetInt($"Player{position}EducationLevel", player.GetEducationLevel());
                 PlayerPrefs.SetInt($"Player{position}Stars", player.getStars());
+                PlayerPrefs.SetInt($"Player{position}FinalScore", player.GetFinalScore());
+                PlayerPrefs.SetString($"Player{position}ScoreBreakdown", player.GetScoreBreakdown());
             }
         }
 
@@ -260,7 +258,7 @@ public class BoardManager : MonoBehaviour {
         return 0;
     }
 
-    // AplicarDespesasExtras removido — despesas não são mais automáticas
+    // Despesas são aplicadas por turno em Player.TakeTurn() via sistema de Holerite
 
     public List<Player> GetPlayers() {
         return new List<Player>() { p1, p2, p3, p4 };

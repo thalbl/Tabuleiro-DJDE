@@ -6,29 +6,34 @@ public class PlayerResultPanel : MonoBehaviour {
     public Text positionText;
     public Text nameText;
     public Text moneyText;
-    public Text careerLevelText; // Agora mostra t�tulo + n�vel
+    public Text careerLevelText; // Agora mostra ttulo + nvel
     public Text educationLevelText;
     public Text starsText;
+    public Text scoreText;
     public Image backgroundImage;
 
     public void SetPlayerData(
          int position,
          string playerName,
          int money,
-         string career, // Agora recebe a string formatada completa
+         string career,
          int educationLevel,
          int stars,
+         int finalScore,
          bool isWinner
      ) {
         positionText.text = GetPositionString(position);
         nameText.text = playerName;
-        moneyText.text = $"${money:N0}";
+        moneyText.text = $"{money} Moedas";
 
-        // Usar a carreira formatada diretamente
         careerLevelText.text = career;
 
         educationLevelText.text = $"Educação: Nv. {educationLevel}";
         starsText.text = $"{stars} Estrelas";
+
+        if (scoreText != null)
+            scoreText.text = $"Pontuação: {finalScore} pts";
+
         GetColorFromPosition(position, backgroundImage);
 
         // Destacar o vencedor

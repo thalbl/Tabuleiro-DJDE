@@ -51,10 +51,21 @@ public class Player : MonoBehaviour {
 
         ui.YourTurn(state.charName(), state.charColor());
         usedItem = false;
-        // Salário simplificado: deposita direto em moedas
-        int salario = state.GetSalary();
-        state.changeCoins(salario);
 
+        yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
+
+        // Sistema financeiro: salário líquido = salário - despesas
+        int salario = state.GetSalary();
+        int despesas = state.GetDespesaAtual();
+        int liquido = salario - despesas;
+        state.changeCoins(liquido);
+
+        string resumoFinanceiro =
+            $"Salario:    +{salario} Moedas\n" +
+            $"Despesas: -{despesas} Moedas\n" +
+            $"_______________________\n" +
+            $"Liquido:    {(liquido >= 0 ? "+" : "")}{liquido} Moedas";
+        ui.Dialogue("Holerite Mensal", resumoFinanceiro, true);
         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
         while (takingTurn) {
             // Limpar descrições de itens antes de mostrar o menu principal

@@ -46,17 +46,19 @@ public class GameOverController : MonoBehaviour {
             int money = PlayerPrefs.GetInt($"Player{position}Money", 0);
             int educationLevel = PlayerPrefs.GetInt($"Player{position}EducationLevel", 0);
             int stars = PlayerPrefs.GetInt($"Player{position}Stars", 0);
+            int finalScore = PlayerPrefs.GetInt($"Player{position}FinalScore", 0);
 
             // Obter carreira formatada
-            string career = PlayerPrefs.GetString($"Player{position}Career", "Nv. 1 - Profiss�o Estagi�rio");
+            string career = PlayerPrefs.GetString($"Player{position}Career", "Nv. 1 - Estagiário");
 
             panel.SetPlayerData(
                 position: position,
                 playerName: playerName,
                 money: money,
-                career: career, // Passar a string formatada completa
+                career: career,
                 educationLevel: educationLevel,
                 stars: stars,
+                finalScore: finalScore,
                 isWinner: position == winnerPosition
             );
         }

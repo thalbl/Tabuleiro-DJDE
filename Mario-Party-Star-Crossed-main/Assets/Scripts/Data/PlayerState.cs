@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -56,15 +56,29 @@ public class PlayerState : ISerializationCallbackReceiver {
         {"Piloto", 90}, {"Artista", 35}, {"Cientista", 72}, {"Empresário", 100}
     };
 
+    // Despesas calibradas para 25-40% do salário base:
+    // - Profissões de alto salário têm custo de vida maior (inflação de estilo de vida)
+    // - Profissões de menor salário são mais econômicas
     private static readonly Dictionary<string, int> ProfissoesDespesasBase = new Dictionary<string, int> {
-        {"Médico", 8}, {"Engenheiro", 7}, {"Professor", 4},
-        {"Advogado", 8}, {"Designer", 5}, {"Programador", 7},
-        {"Enfermeiro", 5}, {"Chef de Cozinha", 6}, {"Jornalista", 5},
-        {"Piloto", 9}, {"Artista", 4}, {"Cientista", 7}, {"Empresário", 10}
+        {"Médico", 28},          // 28/80 = 35%
+        {"Engenheiro", 21},      // 21/70 = 30%
+        {"Professor", 10},       // 10/40 = 25%
+        {"Advogado", 26},        // 26/75 = 35%
+        {"Designer", 15},        // 15/50 = 30%
+        {"Programador", 20},     // 20/65 = 31%
+        {"Enfermeiro", 14},      // 14/45 = 31%
+        {"Chef de Cozinha", 17}, // 17/55 = 31%
+        {"Jornalista", 14},      // 14/48 = 29%
+        {"Piloto", 36},          // 36/90 = 40%
+        {"Artista", 9},          // 9/35  = 26%
+        {"Cientista", 22},       // 22/72 = 31%
+        {"Empresário", 40}       // 40/100 = 40%
     };
 
-    private static readonly float[] CareerMultipliers = { 1.0f, 1.3f, 1.7f, 2.2f, 2.8f, 3.5f, 4.3f, 5.2f, 6.2f, 7.3f };
-    // Fatores de multiplicacao por nivel de carreira
+    // Multiplicadores lineares controlados (máx 3.0x em vez de 7.3x)
+    // Mantém progressão significativa sem causar hiperinflação no late-game
+    // Nv1=1.0  Nv2=1.15  Nv3=1.3  Nv4=1.5  Nv5=1.7  Nv6=1.9  Nv7=2.1  Nv8=2.35  Nv9=2.6  Nv10=3.0
+    private static readonly float[] CareerMultipliers = { 1.0f, 1.15f, 1.3f, 1.5f, 1.7f, 1.9f, 2.1f, 2.35f, 2.6f, 3.0f };
 
     // Adicione este dicionario estatico para mapear niveis para titulos
     private static readonly Dictionary<int, string> CareerTitles = new Dictionary<int, string> {
@@ -211,6 +225,21 @@ public class PlayerState : ISerializationCallbackReceiver {
 
     public int GetEducationLevel() => educationLevel;
 
+    // ================== PONTUAÇÃO FINAL (CONDIÇÃO DE VITÓRIA) ==================
+    // Pontuação composta que valoriza todas as mecânicas do jogo:
+    //   Estrelas × 100 + Moedas + Nível de Carreira × 50 + Educação × 75
+    public int GetFinalScore() {
+        return (stars * 100) + coins + (careerLevel * 50) + (educationLevel * 75);
+    }
+
+    public string GetScoreBreakdown() {
+        return $"Estrelas: {stars} x100 = {stars * 100}\n" +
+               $"Moedas: {coins}\n" +
+               $"Carreira Nv.{careerLevel} x50 = {careerLevel * 50}\n" +
+               $"Educacao Nv.{educationLevel} x75 = {educationLevel * 75}\n" +
+               $"_______________________\n" +
+               $"TOTAL: {GetFinalScore()} pontos";
+    }
 
     // ================== FUNÇÕES EXISTENTES ==================
     public int getCoins() => this.coins;

@@ -116,17 +116,12 @@ public class BlueSpace : BoardSpace {
                 break;
 
             case "Promocao":
-                // Só promove se não estiver no nível máximo (10)
-                if (p.state.GetCareerLevel() < 10) {
-                    p.state.Promote();
-                    ui.Dialogue("Promoção!", $"Agora você é {p.state.GetCareerTitle()}!", true);
-                }
-                else {
-                    // Bônus alternativo para quem já está no topo
-                    int bonusTopo = 100;
-                    p.state.changeCoins(bonusTopo);
-                    ui.Dialogue("Reconhecimento", $"Bônus de liderança: +{bonusTopo} Moedas!", true);
-                }
+                // Bônus de reconhecimento profissional (sem promoção grátis)
+                // Promoções vêm exclusivamente da CareerTransitionSpace
+                int bonusReconhecimento = 20 + (nivelCarreira * 10);
+                p.state.changeCoins(bonusReconhecimento);
+                ui.Dialogue("Reconhecimento Profissional",
+                    $"Seu desempenho foi notado!\n+{bonusReconhecimento} Moedas de bônus!", true);
                 break;
         }
 
