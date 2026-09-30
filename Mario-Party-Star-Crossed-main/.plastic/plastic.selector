@@ -1,4 +1,4 @@
-repository "DJDE-2025@unity_B38F4DF433F4289F88A2@cloud"
+repository "Cloud Repositories/DJDE-2025@4673776122683@cloud"
   path "/"
     br "/main"
     co "/main"

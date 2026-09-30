@@ -30,6 +30,11 @@ public class DiceBlock : MonoBehaviour {
         followers = new List<Transform>();
         aiMagicRoll = 0;
 
+        // Garante a existência de um Collider para detectar toques e cliques diretos no modelo 3D
+        if (GetComponent<Collider>() == null) {
+            gameObject.AddComponent<BoxCollider>();
+        }
+
         if (transform.parent.gameObject.GetComponent<Player>() != null) {
             transform.position = transform.parent.position + (Vector3.up * 3.0f);
             if (transform.parent.gameObject.GetComponent<Player>().state.getController() == 0) {
@@ -51,14 +56,15 @@ public class DiceBlock : MonoBehaviour {
         comTimer += Time.deltaTime;
         transform.Rotate(new Vector3(rotationSpeed * Time.deltaTime, rotationSpeed * Time.deltaTime, rotationSpeed * Time.deltaTime));
         if (magic) {
+            int swipe = MobileInputManager.GetHorizontalSwipe();
             if (aiMagicRoll != 0) {
                 currentRoll = aiMagicRoll;
-            } else if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.D)) {
+            } else if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.D) || swipe > 0) {
                 currentRoll += 1;
                 if (currentRoll > maxRoll) {
                     currentRoll = 1;
                 }
-            } else if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.A)) {
+            } else if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.A) || swipe < 0) {
                 currentRoll -= 1;
                 if (currentRoll < 1) {
                     currentRoll = maxRoll;
@@ -87,19 +93,44 @@ public class DiceBlock : MonoBehaviour {
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.Space) || comTimer >= 1.5f) {
-            comTimer = -99.9f;
-            rend.enabled = false;
-            foreach (ParticleSystem part in particles) {
-                part.Play();
-            }
-            if (leader) {
-                transform.parent.gameObject.GetComponent<Player>().SendRoll(currentRoll);
-            } else {
-                transform.parent.gameObject.GetComponent<DiceBlock>().PassAlongRoll(currentRoll);
-            }
-            Destroy(gameObject, 1.0f);
+        // Suporte Mobile e Desktop: tecla Espaço, toque na tela (humano) ou timeout (COM)
+        bool isHumanTurn = transform.parent != null &&
+                            transform.parent.gameObject.GetComponent<Player>() != null &&
+                            transform.parent.gameObject.GetComponent<Player>().state.getController() == 0;
+
+        bool touchTriggered = isHumanTurn && MobileInputManager.IsTouchOrClickDown();
+
+        if (Input.GetKeyDown(KeyCode.Space) || touchTriggered || comTimer >= 1.5f) {
+            TriggerRoll();
         }
+    }
+
+    /// <summary>
+    /// Permite rolar tocando ou clicando diretamente sobre o modelo 3D do dado.
+    /// </summary>
+    void OnMouseDown() {
+        bool isHumanTurn = transform.parent != null &&
+                            transform.parent.gameObject.GetComponent<Player>() != null &&
+                            transform.parent.gameObject.GetComponent<Player>().state.getController() == 0;
+        if (isHumanTurn && rend != null && rend.enabled) {
+            TriggerRoll();
+        }
+    }
+
+    private void TriggerRoll() {
+        if (comTimer <= -90.0f) return; // Já rolou este dado
+        HapticFeedback.VibrateDiceRoll();
+        comTimer = -99.9f;
+        if (rend != null) rend.enabled = false;
+        foreach (ParticleSystem part in particles) {
+            if (part != null) part.Play();
+        }
+        if (leader) {
+            transform.parent.gameObject.GetComponent<Player>().SendRoll(currentRoll);
+        } else {
+            transform.parent.gameObject.GetComponent<DiceBlock>().PassAlongRoll(currentRoll);
+        }
+        Destroy(gameObject, 1.0f);
     }
 
     public void AskForDirection(Transform t) {

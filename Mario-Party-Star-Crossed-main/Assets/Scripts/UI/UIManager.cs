@@ -64,6 +64,24 @@ public class UIManager : MonoBehaviour {
     // Novos: descrições das opções
     private List<string> choiceDescriptions;
 
+    // Monitoramento de Safe Area para Mobile
+    private Rect lastSafeArea = Rect.zero;
+    private Vector2Int lastScreenSize = Vector2Int.zero;
+
+    void Awake() {
+        // Configura CanvasScaler para manter proporção balanceada e legibilidade em qualquer tela
+        CanvasScaler scaler = GetComponent<CanvasScaler>();
+        if (scaler == null) scaler = GetComponentInParent<CanvasScaler>();
+        if (scaler != null) {
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920, 1080);
+            scaler.matchWidthOrHeight = 0.5f;
+        }
+
+        // Garante que o gerenciador de entrada e configurações mobile esteja ativo
+        MobileInputManager.EnsureExists();
+    }
+
     // Start is called before the first frame update
     void Start() {
         game = FindObjectOfType<BoardManager>();
@@ -139,6 +157,9 @@ public class UIManager : MonoBehaviour {
         AttachHover(optionC, OptionCHovered);
         AttachHover(optionD, OptionDHovered);
         AttachHover(optionE, OptionEHovered);
+
+        // Ajusta a posição da HUD para não ser cortada por entalhes, cantos curvos e bordas mobile
+        AjustarHUDParaSafeArea();
     }
 
     private void AttachHover(GameObject go, UnityAction callback) {
@@ -181,6 +202,11 @@ public class UIManager : MonoBehaviour {
     void Update() {
         comTime += Time.deltaTime;
 
+        // Atualiza layout da HUD se a resolução ou Safe Area mudar
+        if (Screen.safeArea != lastSafeArea || Screen.width != lastScreenSize.x || Screen.height != lastScreenSize.y) {
+            AjustarHUDParaSafeArea();
+        }
+
         turnTracker.GetComponent<Text>().text = game.state.getTurnText();
         turnTrackerDrop.GetComponent<Text>().text = game.state.getTurnText();
 
@@ -210,7 +236,8 @@ public class UIManager : MonoBehaviour {
                 if (spinnerLoc > 7) {
                     spinnerLoc = 1;
                 }
-                if (Input.GetKeyDown(KeyCode.Space) && windDown < -50) {
+                if ((Input.GetKeyDown(KeyCode.Space) || MobileInputManager.IsTouchOrClickDown()) && windDown < -50) {
+                    HapticFeedback.Vibrate();
                     windDown = Random.Range(6, 9);
                 } else if (windDown <= 0 && mostRecentPrompt == "Spinner") {
                     spinning = false;
@@ -477,6 +504,9 @@ public class UIManager : MonoBehaviour {
             optionD.SetActive(false);
             optionE.SetActive(false);
         }
+
+        // Estiliza e reposiciona as opções de ação dinamicamente
+        EstilizarEReposicionarOpcoes();
     }
 
     public void SetMoveCounterNumber(int i) {
@@ -494,7 +524,7 @@ public class UIManager : MonoBehaviour {
             } else if (mostRecentPrompt == "Options") {
                 return mostRecentAns != "";
             } else {
-                return Input.GetKeyDown(KeyCode.Space);
+                return Input.GetKeyDown(KeyCode.Space) || MobileInputManager.IsTouchOrClickDown();
             }
         } else if (controller == 5) {
             // REMOTE PLAYER
@@ -528,22 +558,27 @@ public class UIManager : MonoBehaviour {
     }
 
     public void OptionAClicked() {
+        HapticFeedback.Vibrate();
         mostRecentAns = choices[0];
     }
 
     public void OptionBClicked() {
+        HapticFeedback.Vibrate();
         mostRecentAns = choices[1];
     }
 
     public void OptionCClicked() {
+        HapticFeedback.Vibrate();
         mostRecentAns = choices[2];
     }
 
     public void OptionDClicked() {
+        HapticFeedback.Vibrate();
         mostRecentAns = choices[3];
     }
 
     public void OptionEClicked() {
+        HapticFeedback.Vibrate();
         mostRecentAns = choices[4];
     }
 
@@ -551,6 +586,414 @@ public class UIManager : MonoBehaviour {
     public void RefreshPlayerDetailMenu() {
         if (playerDetailMenu != null && playerDetailMenu.IsVisible()) {
             playerDetailMenu.RefreshDisplay();
+        }
+    }
+
+    private static Sprite roundedBoxSprite;
+
+    private static Sprite ObterSpriteArredondado() {
+        if (roundedBoxSprite != null) return roundedBoxSprite;
+
+        int w = 64;
+        int h = 64;
+        int r = 16;
+        Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+        Color transparente = new Color(0, 0, 0, 0);
+
+        for (int x = 0; x < w; x++) {
+            for (int y = 0; y < h; y++) {
+                bool dentro = (x >= r && x < w - r) || (y >= r && y < h - r);
+                if (!dentro) {
+                    float cx = x < r ? r : w - r - 1;
+                    float cy = y < r ? r : h - r - 1;
+                    float dist = Vector2.Distance(new Vector2(x, y), new Vector2(cx, cy));
+                    dentro = dist <= r;
+                }
+                tex.SetPixel(x, y, dentro ? Color.white : transparente);
+            }
+        }
+        tex.Apply();
+        roundedBoxSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(r, r, r, r));
+        return roundedBoxSprite;
+    }
+
+    private bool dialogoEstilizado = false;
+
+    private void EstilizarCaixaDeDialogo() {
+        if (dialogoEstilizado) return;
+        dialogoEstilizado = true;
+
+        Sprite spriteArredondado = ObterSpriteArredondado();
+        Font fonte = Resources.Load<Font>("font/Fredoka-VariableFont_wdth,wght");
+        if (fonte == null) fonte = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+        // 1. Estilização da Caixa de Diálogo Principal (Fundo Dark Slate translúcido com borda dourada)
+        if (dialogue != null) {
+            Image dImg = dialogue.GetComponent<Image>();
+            if (dImg != null) {
+                dImg.sprite = spriteArredondado;
+                dImg.type = Image.Type.Sliced;
+                dImg.color = new Color(0.06f, 0.09f, 0.15f, 0.94f);
+            }
+
+            Outline dOutline = dialogue.GetComponent<Outline>();
+            if (dOutline == null) dOutline = dialogue.AddComponent<Outline>();
+            dOutline.effectColor = new Color(0.98f, 0.75f, 0.14f, 0.70f); // Dourado
+            dOutline.effectDistance = new Vector2(2.5f, -2.5f);
+
+            Shadow dShadow = dialogue.GetComponent<Shadow>();
+            if (dShadow == null) dShadow = dialogue.AddComponent<Shadow>();
+            dShadow.effectColor = new Color(0f, 0f, 0f, 0.65f);
+            dShadow.effectDistance = new Vector2(4f, -4f);
+
+            // Ajuste e formatação com FONTE AUMENTADA para leitura clara em mobile
+            if (dialogueText != null) {
+                if (fonte != null) dialogueText.font = fonte;
+                dialogueText.color = new Color(0.96f, 0.98f, 1f, 1f);
+                dialogueText.fontSize = 40;
+                dialogueText.lineSpacing = 1.25f;
+                dialogueText.alignment = TextAnchor.UpperLeft;
+                dialogueText.horizontalOverflow = HorizontalWrapMode.Wrap;
+                dialogueText.verticalOverflow = VerticalWrapMode.Truncate;
+
+                RectTransform dtRT = dialogueText.GetComponent<RectTransform>();
+                if (dtRT != null) {
+                    dtRT.anchorMin = Vector2.zero;
+                    dtRT.anchorMax = Vector2.one;
+                    dtRT.offsetMin = new Vector2(40f, 25f);
+                    dtRT.offsetMax = new Vector2(-40f, -25f);
+                }
+            }
+
+            // Indicador sutil de "Toque para continuar ▸"
+            Transform indTrans = dialogue.transform.Find("IndicadorContinuar");
+            if (indTrans == null) {
+                GameObject indObj = new GameObject("IndicadorContinuar");
+                indObj.transform.SetParent(dialogue.transform, false);
+                RectTransform indRT = indObj.AddComponent<RectTransform>();
+                indRT.anchorMin = new Vector2(1f, 0f);
+                indRT.anchorMax = new Vector2(1f, 0f);
+                indRT.pivot = new Vector2(1f, 0f);
+                indRT.anchoredPosition = new Vector2(-25f, 14f);
+                indRT.sizeDelta = new Vector2(320f, 34f);
+
+                Text indTxt = indObj.AddComponent<Text>();
+                if (fonte != null) indTxt.font = fonte;
+                indTxt.text = "Toque para continuar ▸";
+                indTxt.fontSize = 24;
+                indTxt.fontStyle = FontStyle.Bold;
+                indTxt.alignment = TextAnchor.MiddleRight;
+                indTxt.color = new Color(0.98f, 0.75f, 0.14f, 0.85f);
+            }
+        }
+
+        // 2. Estilização da Aba do Título / Locutor (Character) com FONTE AUMENTADA
+        if (character != null) {
+            Image cImg = character.GetComponent<Image>();
+            if (cImg != null) {
+                cImg.sprite = spriteArredondado;
+                cImg.type = Image.Type.Sliced;
+                cImg.color = new Color(0.98f, 0.75f, 0.14f, 1f); // Dourado vibrante
+            }
+
+            Outline cOutline = character.GetComponent<Outline>();
+            if (cOutline == null) cOutline = character.AddComponent<Outline>();
+            cOutline.effectColor = new Color(0.35f, 0.15f, 0.02f, 0.65f);
+            cOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            Shadow cShadow = character.GetComponent<Shadow>();
+            if (cShadow == null) cShadow = character.AddComponent<Shadow>();
+            cShadow.effectColor = new Color(0f, 0f, 0f, 0.4f);
+            cShadow.effectDistance = new Vector2(2f, -2f);
+
+            if (speakerText != null) {
+                if (fonte != null) speakerText.font = fonte;
+                speakerText.color = new Color(0.25f, 0.08f, 0.01f, 1f); // Marrom escuro contrastante
+                speakerText.fontStyle = FontStyle.Bold;
+                speakerText.fontSize = 34;
+                speakerText.alignment = TextAnchor.MiddleCenter;
+                speakerText.horizontalOverflow = HorizontalWrapMode.Overflow;
+                speakerText.verticalOverflow = VerticalWrapMode.Overflow;
+
+                RectTransform stRT = speakerText.GetComponent<RectTransform>();
+                if (stRT != null) {
+                    stRT.anchorMin = Vector2.zero;
+                    stRT.anchorMax = Vector2.one;
+                    stRT.offsetMin = new Vector2(15f, 5f);
+                    stRT.offsetMax = new Vector2(-15f, -5f);
+                }
+            }
+        }
+
+        // 3. Estilização do Contador de Turno na HUD com FONTE AUMENTADA
+        if (turnTracker != null) {
+            Text tMain = turnTracker.GetComponent<Text>();
+            if (tMain != null) {
+                if (fonte != null) tMain.font = fonte;
+                tMain.fontSize = 46;
+                tMain.fontStyle = FontStyle.Bold;
+                tMain.horizontalOverflow = HorizontalWrapMode.Overflow;
+                tMain.verticalOverflow = VerticalWrapMode.Overflow;
+            }
+        }
+        if (turnTrackerDrop != null) {
+            Text tDrop = turnTrackerDrop.GetComponent<Text>();
+            if (tDrop != null) {
+                if (fonte != null) tDrop.font = fonte;
+                tDrop.fontSize = 46;
+                tDrop.fontStyle = FontStyle.Bold;
+                tDrop.horizontalOverflow = HorizontalWrapMode.Overflow;
+                tDrop.verticalOverflow = VerticalWrapMode.Overflow;
+            }
+        }
+
+        // 4. Estilização do Contador de Passos (Spaces Left) com FONTE AUMENTADA
+        if (spacesLeft != null) {
+            Text slText = spacesLeft.GetComponent<Text>();
+            if (slText != null) {
+                if (fonte != null) slText.font = fonte;
+                slText.fontSize = 64;
+                slText.fontStyle = FontStyle.Bold;
+                slText.horizontalOverflow = HorizontalWrapMode.Overflow;
+                slText.verticalOverflow = VerticalWrapMode.Overflow;
+            }
+            Outline slOutline = spacesLeft.GetComponent<Outline>();
+            if (slOutline == null) slOutline = spacesLeft.AddComponent<Outline>();
+            slOutline.effectColor = new Color(0f, 0f, 0f, 0.90f);
+            slOutline.effectDistance = new Vector2(3f, -3f);
+        }
+
+        // 5. Estilização do Splash de Turno (Your Turn) com FONTE AUMENTADA
+        if (yourTurn != null) {
+            Text ytText = yourTurn.GetComponent<Text>();
+            if (ytText != null) {
+                if (fonte != null) ytText.font = fonte;
+                ytText.fontSize = 76;
+                ytText.fontStyle = FontStyle.Bold;
+                ytText.horizontalOverflow = HorizontalWrapMode.Overflow;
+                ytText.verticalOverflow = VerticalWrapMode.Overflow;
+            }
+            if (yourTurnColor != null) {
+                if (fonte != null) yourTurnColor.font = fonte;
+                yourTurnColor.fontSize = 76;
+                yourTurnColor.fontStyle = FontStyle.Bold;
+                yourTurnColor.horizontalOverflow = HorizontalWrapMode.Overflow;
+                yourTurnColor.verticalOverflow = VerticalWrapMode.Overflow;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Estiliza individualmente um botão de escolha de ações com cantos arredondados,
+    /// fundo Dark Slate elegante, contorno dourado, sombra e fonte Fredoka legível.
+    /// </summary>
+    private void EstilizarBotaoOpcao(GameObject btnObj, Sprite sprite, Font fonte) {
+        if (btnObj == null) return;
+
+        // Fundo arredondado elegante Dark Slate
+        Image img = btnObj.GetComponent<Image>();
+        if (img != null) {
+            img.sprite = sprite;
+            img.type = Image.Type.Sliced;
+            img.color = new Color(0.08f, 0.12f, 0.20f, 0.95f);
+        }
+
+        // Borda dourada refinada
+        Outline outline = btnObj.GetComponent<Outline>();
+        if (outline == null) outline = btnObj.AddComponent<Outline>();
+        outline.effectColor = new Color(0.98f, 0.75f, 0.14f, 0.85f);
+        outline.effectDistance = new Vector2(2f, -2f);
+
+        // Sombra para profundidade visual
+        Shadow shadow = btnObj.GetComponent<Shadow>();
+        if (shadow == null) shadow = btnObj.AddComponent<Shadow>();
+        shadow.effectColor = new Color(0f, 0f, 0f, 0.60f);
+        shadow.effectDistance = new Vector2(3.5f, -3.5f);
+
+        // Transição de cores interativa ao toque/hover
+        Button btn = btnObj.GetComponent<Button>();
+        if (btn != null) {
+            btn.transition = Selectable.Transition.ColorTint;
+            ColorBlock cb = btn.colors;
+            cb.normalColor = new Color(0.08f, 0.12f, 0.20f, 0.95f);
+            cb.highlightedColor = new Color(0.18f, 0.28f, 0.44f, 1f);
+            cb.pressedColor = new Color(0.98f, 0.75f, 0.14f, 0.50f);
+            cb.selectedColor = new Color(0.18f, 0.28f, 0.44f, 1f);
+            btn.colors = cb;
+        }
+
+        // Texto do Botão em negrito e com tamanho calibrado
+        Text btnText = btnObj.GetComponentInChildren<Text>();
+        if (btnText != null) {
+            if (fonte != null) btnText.font = fonte;
+            btnText.fontSize = 28;
+            btnText.fontStyle = FontStyle.Bold;
+            btnText.alignment = TextAnchor.MiddleCenter;
+            btnText.color = new Color(0.96f, 0.98f, 1f, 1f);
+            btnText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            btnText.verticalOverflow = VerticalWrapMode.Truncate;
+
+            Shadow tShadow = btnText.GetComponent<Shadow>();
+            if (tShadow == null) tShadow = btnText.gameObject.AddComponent<Shadow>();
+            tShadow.effectColor = new Color(0f, 0f, 0f, 0.75f);
+            tShadow.effectDistance = new Vector2(1.5f, -1.5f);
+
+            RectTransform textRT = btnText.GetComponent<RectTransform>();
+            if (textRT != null) {
+                textRT.anchorMin = Vector2.zero;
+                textRT.anchorMax = Vector2.one;
+                textRT.offsetMin = new Vector2(16f, 4f);
+                textRT.offsetMax = new Vector2(-16f, -4f);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reposiciona os botões de opção no canto inferior direito, empilhados verticalmente
+    /// logo acima da caixa de diálogo, liberando completamente o centro da tela e o topo.
+    /// </summary>
+    private void EstilizarEReposicionarOpcoes() {
+        Sprite spriteArredondado = ObterSpriteArredondado();
+        Font fonte = Resources.Load<Font>("font/Fredoka-VariableFont_wdth,wght");
+        if (fonte == null) fonte = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+        // CRUCIAL: Garantir que o container pai "Options" ocupe a tela inteira
+        // para que as âncoras dos botões filhos sejam relativas à tela e não a um ponto central
+        if (options != null) {
+            RectTransform optRT = options.GetComponent<RectTransform>();
+            if (optRT != null) {
+                optRT.anchorMin = Vector2.zero;
+                optRT.anchorMax = Vector2.one;
+                optRT.offsetMin = Vector2.zero;
+                optRT.offsetMax = Vector2.zero;
+                optRT.pivot = new Vector2(0.5f, 0.5f);
+                optRT.localScale = Vector3.one;
+                optRT.localPosition = Vector3.zero;
+            }
+        }
+
+        // Obter paddings da Safe Area calculados
+        float sidePadding = 40f;
+        float bottomPadding = 35f;
+        Rect safeArea = Screen.safeArea;
+        if (Screen.height > 0 && Screen.width > 0) {
+            float bottomRatio = safeArea.y / (float)Screen.height;
+            float leftRatio = safeArea.x / (float)Screen.width;
+            float rightRatio = (Screen.width - (safeArea.x + safeArea.width)) / (float)Screen.width;
+            float sideRatio = Mathf.Max(leftRatio, rightRatio);
+            bottomPadding = Mathf.Max(bottomRatio * 1080f, 35f);
+            sidePadding = Mathf.Max(sideRatio * 1920f, 40f);
+        }
+
+        float dialogHeight = 210f;
+        float baseGap = 12f;
+        float btnWidth = 440f;
+        float btnHeight = 58f;
+        float btnSpacing = 8f;
+
+        GameObject[] botoes = new GameObject[] { optionA, optionB, optionC, optionD, optionE };
+        for (int i = 0; i < botoes.Length; i++) {
+            GameObject btnObj = botoes[i];
+            if (btnObj == null) continue;
+
+            EstilizarBotaoOpcao(btnObj, spriteArredondado, fonte);
+
+            RectTransform rt = btnObj.GetComponent<RectTransform>();
+            if (rt != null) {
+                // Ancorado no canto inferior direito da tela
+                rt.anchorMin = new Vector2(1f, 0f);
+                rt.anchorMax = new Vector2(1f, 0f);
+                rt.pivot = new Vector2(1f, 0f);
+                rt.sizeDelta = new Vector2(btnWidth, btnHeight);
+
+                // Posicionamento empilhado de baixo para cima acima da caixa de diálogo no canto direito
+                float posX = -sidePadding - 25f;
+                float posY = bottomPadding + dialogHeight + baseGap + (i * (btnHeight + btnSpacing));
+                rt.anchoredPosition = new Vector2(posX, posY);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Ajusta os painéis da HUD para respeitar a Safe Area e cantos arredondados de dispositivos móveis.
+    /// Posiciona a caixa de diálogo na base da tela e o título logo acima dela.
+    /// </summary>
+    public void AjustarHUDParaSafeArea() {
+        Rect safeArea = Screen.safeArea;
+        lastSafeArea = safeArea;
+        lastScreenSize = new Vector2Int(Screen.width, Screen.height);
+
+        // Aplica o novo design visual refinado e fontes aumentadas
+        EstilizarCaixaDeDialogo();
+        EstilizarEReposicionarOpcoes();
+
+        // Proporções da Safe Area em relação à tela real
+        float topRatio = 0f;
+        float bottomRatio = 0f;
+        float sideRatio = 0f;
+
+        if (Screen.height > 0 && Screen.width > 0) {
+            topRatio = (Screen.height - (safeArea.y + safeArea.height)) / (float)Screen.height;
+            bottomRatio = safeArea.y / (float)Screen.height;
+            float leftRatio = safeArea.x / (float)Screen.width;
+            float rightRatio = (Screen.width - (safeArea.x + safeArea.width)) / (float)Screen.width;
+            sideRatio = Mathf.Max(leftRatio, rightRatio);
+        }
+
+        // Converte para unidades do Canvas (base 1080p)
+        float topPadding = Mathf.Max(topRatio * 1080f, 50f);
+        float bottomPadding = Mathf.Max(bottomRatio * 1080f, 35f);
+        float sidePadding = Mathf.Max(sideRatio * 1920f, 40f);
+
+        // 1. Ajustar Barra Superior (Standings - Cartões dos Jogadores)
+        if (standings != null) {
+            RectTransform rt = standings.GetComponent<RectTransform>();
+            if (rt != null) {
+                Vector2 pos = rt.anchoredPosition;
+                pos.y = -topPadding;
+                rt.anchoredPosition = pos;
+                rt.localScale = new Vector3(0.88f, 0.88f, 1f);
+            }
+        }
+
+        // 2. Ajustar Caixa de Diálogo (Inferior - fixada na base da tela)
+        float dialogHeight = 210f;
+        if (dialogue != null) {
+            RectTransform rt = dialogue.GetComponent<RectTransform>();
+            if (rt != null) {
+                // Força âncoras na base da tela para nunca subir ao centro
+                rt.anchorMin = new Vector2(0f, 0f);
+                rt.anchorMax = new Vector2(1f, 0f);
+                rt.pivot = new Vector2(0.5f, 0f);
+
+                rt.anchoredPosition = new Vector2(0f, bottomPadding);
+                rt.sizeDelta = new Vector2(-sidePadding * 2f, dialogHeight);
+            }
+        }
+
+        // 3. Ajustar Título / Locutor (Character) - Posicionado LOGO ACIMA da caixa de diálogo
+        if (character != null) {
+            RectTransform rt = character.GetComponent<RectTransform>();
+            if (rt != null) {
+                // Força âncoras na base da tela alinhado com a caixa de diálogo
+                rt.anchorMin = new Vector2(0f, 0f);
+                rt.anchorMax = new Vector2(0f, 0f);
+                rt.pivot = new Vector2(0f, 0f);
+
+                // Posicionado exatamente em cima do teto da caixa de diálogo no canto esquerdo
+                rt.anchoredPosition = new Vector2(sidePadding + 25f, bottomPadding + dialogHeight - 4f);
+                rt.sizeDelta = new Vector2(340f, 62f);
+            }
+        }
+
+        // 4. Ajustar Contador de Passos (Spaces Left)
+        if (spacesLeft != null) {
+            RectTransform rt = spacesLeft.GetComponent<RectTransform>();
+            if (rt != null) {
+                Vector2 pos = rt.anchoredPosition;
+                pos.y = -topPadding - 80f;
+                rt.anchoredPosition = pos;
+            }
         }
     }
 }

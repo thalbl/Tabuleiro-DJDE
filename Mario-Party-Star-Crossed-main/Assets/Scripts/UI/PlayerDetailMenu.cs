@@ -59,8 +59,15 @@ public class PlayerDetailMenu : MonoBehaviour
     {
         currentPlayer = player;
 
+        // Interromper qualquer animação em andamento antes de recriar
+        StopAllCoroutines();
+
         // Destruir cartão anterior se existir
-        if (overlayObj != null) Destroy(overlayObj);
+        if (overlayObj != null) {
+            Destroy(overlayObj);
+            overlayObj = null;
+            cardRT = null;
+        }
 
         ConstruirCard();
         AtualizarDados();
@@ -73,6 +80,7 @@ public class PlayerDetailMenu : MonoBehaviour
     {
         if (overlayObj != null)
         {
+            StopAllCoroutines();
             StartCoroutine(AnimarFechamento());
         }
     }
@@ -301,6 +309,11 @@ public class PlayerDetailMenu : MonoBehaviour
         }
     }
 
+    void OnDisable()
+    {
+        StopAllCoroutines();
+    }
+
     // =================== ANIMAÇÕES ===================
     private IEnumerator AnimarAbertura()
     {
@@ -311,6 +324,7 @@ public class PlayerDetailMenu : MonoBehaviour
 
         while (t < duracao)
         {
+            if (cardRT == null) yield break;
             t += Time.unscaledDeltaTime;
             float progresso = t / duracao;
             // Ease OutBack: ultrapassa levemente e volta
@@ -318,17 +332,24 @@ public class PlayerDetailMenu : MonoBehaviour
             cardRT.localScale = Vector3.one * Mathf.Clamp(ease, 0f, 1.15f);
             yield return null;
         }
-        cardRT.localScale = Vector3.one;
+        if (cardRT != null) cardRT.localScale = Vector3.one;
     }
 
     private IEnumerator AnimarFechamento()
     {
-        if (cardRT == null) yield break;
+        if (cardRT == null) {
+            isVisible = false;
+            if (overlayObj != null) Destroy(overlayObj);
+            overlayObj = null;
+            yield break;
+        }
+
         float t = 0f;
         float duracao = 0.2f;
 
         while (t < duracao)
         {
+            if (cardRT == null) yield break;
             t += Time.unscaledDeltaTime;
             float progresso = t / duracao;
             cardRT.localScale = Vector3.one * (1f - progresso);
@@ -337,6 +358,8 @@ public class PlayerDetailMenu : MonoBehaviour
 
         isVisible = false;
         if (overlayObj != null) Destroy(overlayObj);
+        overlayObj = null;
+        cardRT = null;
     }
 
     // =================== UTILITÁRIOS DE UI ===================

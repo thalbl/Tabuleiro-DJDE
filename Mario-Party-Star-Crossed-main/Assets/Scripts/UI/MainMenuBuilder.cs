@@ -44,6 +44,7 @@ public class MainMenuBuilder : MonoBehaviour {
 
     // =================== REFERÊNCIAS ===================
     private Canvas canvas;
+    private Transform safeAreaTransform;
     private Button btnContinuar;
     private Font fonteFredoka;
     private RectTransform tituloRT;
@@ -86,6 +87,20 @@ public class MainMenuBuilder : MonoBehaviour {
         scaler.matchWidthOrHeight = 0.5f;
 
         canvasObj.AddComponent<GraphicRaycaster>();
+
+        // Inicializa gerenciador de configurações mobile (orientação paisagem, 60 FPS)
+        MobileInputManager.EnsureExists();
+
+        // Cria painel de Safe Area para proteger botões e títulos de entalhes (notches)
+        GameObject safeAreaObj = new GameObject("SafeArea");
+        safeAreaObj.transform.SetParent(canvas.transform, false);
+        RectTransform safeRT = safeAreaObj.AddComponent<RectTransform>();
+        safeRT.anchorMin = Vector2.zero;
+        safeRT.anchorMax = Vector2.one;
+        safeRT.offsetMin = Vector2.zero;
+        safeRT.offsetMax = Vector2.zero;
+        safeAreaObj.AddComponent<SafeAreaFitter>();
+        safeAreaTransform = safeAreaObj.transform;
     }
 
     // =================== FUNDO GRADIENTE ===================
@@ -111,9 +126,9 @@ public class MainMenuBuilder : MonoBehaviour {
 
     // =================== TÍTULO ===================
     private void CriarTitulo() {
-        // Container do título
+        // Container do título (dentro da Safe Area)
         GameObject tituloContainer = new GameObject("TituloContainer");
-        tituloContainer.transform.SetParent(canvas.transform, false);
+        tituloContainer.transform.SetParent(safeAreaTransform != null ? safeAreaTransform : canvas.transform, false);
         tituloRT = tituloContainer.AddComponent<RectTransform>();
         tituloRT.anchorMin = new Vector2(0.5f, 0.75f);
         tituloRT.anchorMax = new Vector2(0.5f, 0.75f);
@@ -136,9 +151,9 @@ public class MainMenuBuilder : MonoBehaviour {
 
     // =================== BOTÕES ===================
     private void CriarBotoes() {
-        // Container dos botões
+        // Container dos botões (dentro da Safe Area)
         GameObject container = new GameObject("BotoesContainer");
-        container.transform.SetParent(canvas.transform, false);
+        container.transform.SetParent(safeAreaTransform != null ? safeAreaTransform : canvas.transform, false);
         RectTransform containerRT = container.AddComponent<RectTransform>();
         containerRT.anchorMin = new Vector2(0.5f, 0.35f);
         containerRT.anchorMax = new Vector2(0.5f, 0.35f);

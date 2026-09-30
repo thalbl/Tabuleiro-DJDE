@@ -48,6 +48,39 @@ public class PlayerTracker : MonoBehaviour {
 
         // Configurar clique para abrir menu de detalhes
         SetupClickable();
+
+        // Aplicar tipografia moderna com fonte aumentada para legibilidade na HUD mobile
+        Font fonteFredoka = Resources.Load<Font>("font/Fredoka-VariableFont_wdth,wght");
+        if (fonteFredoka == null) fonteFredoka = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+        if (coinText != null) {
+            if (fonteFredoka != null) coinText.font = fonteFredoka;
+            coinText.fontSize = 32;
+            coinText.fontStyle = FontStyle.Bold;
+            coinText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            coinText.verticalOverflow = VerticalWrapMode.Overflow;
+        }
+        if (starText != null) {
+            if (fonteFredoka != null) starText.font = fonteFredoka;
+            starText.fontSize = 32;
+            starText.fontStyle = FontStyle.Bold;
+            starText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            starText.verticalOverflow = VerticalWrapMode.Overflow;
+        }
+        if (placingText != null) {
+            if (fonteFredoka != null) placingText.font = fonteFredoka;
+            placingText.fontSize = 30;
+            placingText.fontStyle = FontStyle.Bold;
+            placingText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            placingText.verticalOverflow = VerticalWrapMode.Overflow;
+        }
+        if (placingColor != null) {
+            if (fonteFredoka != null) placingColor.font = fonteFredoka;
+            placingColor.fontSize = 30;
+            placingColor.fontStyle = FontStyle.Bold;
+            placingColor.horizontalOverflow = HorizontalWrapMode.Overflow;
+            placingColor.verticalOverflow = VerticalWrapMode.Overflow;
+        }
     }
 
     // Update is called once per frame

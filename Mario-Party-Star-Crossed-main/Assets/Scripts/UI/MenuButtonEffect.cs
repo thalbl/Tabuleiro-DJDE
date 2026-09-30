@@ -59,6 +59,9 @@ public class MenuButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointerExi
     }
 
     public void OnPointerEnter(PointerEventData eventData) {
+        // Em dispositivos touch nativos, ignorar simulação de hover para evitar botões presos no estado destacado
+        if (MobileInputManager.IsTouchSupported && Input.touchCount > 0) return;
+
         isHovering = true;
         StopAllCoroutines();
         StartCoroutine(AnimarPara(escalaOriginal * escalaHover, posicaoOriginal + Vector3.up * subirHover, corHover, corTextoHover));
@@ -71,12 +74,23 @@ public class MenuButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointerExi
     }
 
     public void OnPointerDown(PointerEventData eventData) {
+        // Feedback tátil ao pressionar no mobile
+        HapticFeedback.Vibrate();
+
         // Efeito de "pressionar" — botão desce e encolhe
         StopAllCoroutines();
         StartCoroutine(AnimarPara(escalaOriginal * 0.95f, posicaoOriginal + Vector3.down * 3f, corHover, corTextoHover));
     }
 
     public void OnPointerUp(PointerEventData eventData) {
+        // Se for dispositivo de toque, sempre restaura a cor e posição normal para não ficar preso em hover
+        if (MobileInputManager.IsTouchSupported) {
+            isHovering = false;
+            StopAllCoroutines();
+            StartCoroutine(AnimarPara(escalaOriginal, posicaoOriginal, corNormal, corTextoNormal));
+            return;
+        }
+
         if (isHovering) {
             StopAllCoroutines();
             StartCoroutine(AnimarPara(escalaOriginal * escalaHover, posicaoOriginal + Vector3.up * subirHover, corHover, corTextoHover));

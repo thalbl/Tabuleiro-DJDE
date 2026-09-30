@@ -55,6 +55,9 @@ public class CanvasResolutionManager : MonoBehaviour
         
         // Inicializar tamanho da tela
         lastScreenSize = new Vector2(Screen.width, Screen.height);
+
+        // Garante que o gerenciador de entrada e configurações mobile esteja ativo mesmo dando Play direto nesta cena
+        MobileInputManager.EnsureExists();
     }
 
     void Start()
