@@ -40,7 +40,7 @@ public class Intersection : BoardSpace {
         CarregarPerguntas();
     }
 
-    // MÈtodo para carregar perguntas do arquivo
+    // M√©todo para carregar perguntas do arquivo
     private void CarregarPerguntas() {
         perguntasRespostas = new List<(string, string, string)>();
         TextAsset arquivo = Resources.Load<TextAsset>("perguntas"); // Carrega o arquivo de texto
@@ -54,35 +54,35 @@ public class Intersection : BoardSpace {
             }
         }
         else {
-            Debug.LogError("Arquivo de perguntas n„o encontrado!");
+            Debug.LogError("Arquivo de perguntas n√£o encontrado!");
         }
     }
 
-    // MÈtodo para fazer uma pergunta ao jogador
+    // M√©todo para fazer uma pergunta ao jogador
     private IEnumerator FazerPergunta() {
         if (perguntasRespostas.Count == 0) {
             Debug.LogError("Nenhuma pergunta carregada!");
             yield break;
         }
 
-        // Seleciona uma pergunta aleatÛria
+        // Seleciona uma pergunta aleat√≥ria
         int indice = Random.Range(0, perguntasRespostas.Count);
         var (pergunta, opcao1, opcao2) = perguntasRespostas[indice];
 
-        // Exibe a pergunta ao jogador com duas opÁıes
+        // Exibe a pergunta ao jogador com duas op√ß√µes
         ui.Dialogue("Pergunta", pergunta, new List<string>() { opcao1, opcao2 }, true);
         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
 
         // Verifica a resposta
         string respostaJogador = ui.MostRecentDialogueAnswer();
         if (respostaJogador == opcao1) {
-            goingAlt = false; // Escolhe o caminho padr„o
+            goingAlt = false; // Escolhe o caminho padr√£o
         }
         else if (respostaJogador == opcao2) {
             goingAlt = true; // Escolhe o caminho alternativo
         }
         else {
-            Debug.LogError("Resposta inv·lida!");
+            goingAlt = false;
         }
     }
 
@@ -99,7 +99,7 @@ public class Intersection : BoardSpace {
             // Faz uma pergunta ao jogador para determinar o caminho
             yield return StartCoroutine(FazerPergunta());
 
-            // Define o prÛximo caminho com base na resposta
+            // Define o pr√≥ximo caminho com base na resposta
             if (goingAlt) {
                 next = option;
             }
@@ -126,7 +126,7 @@ public class Intersection : BoardSpace {
         }
     }
 
-    // Restante do cÛdigo permanece inalterado
+    // Restante do c√≥digo permanece inalterado
     public IEnumerator AIPathChoice(Player p) {
         yield return new WaitForSeconds(1.0f);
         goingAlt = p.brain.Prompt("Choose Path At Intersection", new List<string>() { "Next", "Option" }, p.GetCurrentRollCount()) == "Option";
@@ -136,27 +136,43 @@ public class Intersection : BoardSpace {
     }
 
     public override int SpacesToStar(bool withKey) {
+        return SpacesToStar(withKey, 0);
+    }
+
+    public override int SpacesToStar(bool withKey, int depth) {
+        if (depth >= 30) return 30;
         if (gate != null && !withKey) {
-            return option.SpacesToStar(false);
+            return option != null ? option.SpacesToStar(false, depth + 1) : 30;
         }
         if (optionGate != null && !withKey) {
-            return next.SpacesToStar(false);
+            return next != null ? next.SpacesToStar(false, depth + 1) : 30;
         }
-        return Mathf.Min(next.SpacesToStar(withKey), option.SpacesToStar(withKey));
+        int nVal = next != null ? next.SpacesToStar(withKey, depth + 1) : 30;
+        int oVal = option != null ? option.SpacesToStar(withKey, depth + 1) : 30;
+        return Mathf.Min(nVal, oVal);
     }
 
     public override int CumulativeValue(PlayerState state, List<PlayerState> rivals, int roll) {
+        return CumulativeValue(state, rivals, roll, 0);
+    }
+
+    public override int CumulativeValue(PlayerState state, List<PlayerState> rivals, int roll, int depth) {
+        if (depth >= 40) return 0;
         if (gate != null && !state.getItems().Contains(BoardItem.SkeletonKey)) {
-            return option.CumulativeValue(state, rivals, roll);
+            return option != null ? option.CumulativeValue(state, rivals, roll, depth + 1) : 0;
         }
         if (optionGate != null && !state.getItems().Contains(BoardItem.SkeletonKey)) {
-            return next.CumulativeValue(state, rivals, roll);
+            return next != null ? next.CumulativeValue(state, rivals, roll, depth + 1) : 0;
         }
-        return Mathf.Max(next.CumulativeValue(state, rivals, roll), option.CumulativeValue(state, rivals, roll));
+        int nVal = next != null ? next.CumulativeValue(state, rivals, roll, depth + 1) : 0;
+        int oVal = option != null ? option.CumulativeValue(state, rivals, roll, depth + 1) : 0;
+        return Mathf.Max(nVal, oVal);
     }
 
     public override int PlayersInRange(int range) {
-        return Mathf.Max(next.PlayersInRange(range), option.PlayersInRange(range));
+        int nVal = next != null ? next.PlayersInRange(range) : 0;
+        int oVal = option != null ? option.PlayersInRange(range) : 0;
+        return Mathf.Max(nVal, oVal);
     }
 
     public override int AIValue(PlayerState state, List<PlayerState> rivals) {

@@ -6475,11 +6475,11 @@ PrefabInstance:
       objectReference: {fileID: 1739120444}
     - target: {fileID: -7277757352528821241, guid: a35c796d2ab7f2249942913ab2d29447, type: 3}
       propertyPath: requiredEducation
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: -7277757352528821241, guid: a35c796d2ab7f2249942913ab2d29447, type: 3}
       propertyPath: requiredCareerLevel
-      value: 8
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3625506075260832960, guid: a35c796d2ab7f2249942913ab2d29447, type: 3}
       propertyPath: m_RootOrder
@@ -11201,7 +11201,7 @@ PrefabInstance:
       objectReference: {fileID: 91428045}
     - target: {fileID: 6420107528100543420, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
       propertyPath: educationCost
-      value: 10000
+      value: 70
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
@@ -13331,7 +13331,7 @@ PrefabInstance:
       objectReference: {fileID: 1958712483}
     - target: {fileID: 6420107528100543420, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
       propertyPath: educationCost
-      value: 120
+      value: 80
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
@@ -13735,7 +13735,7 @@ PrefabInstance:
       objectReference: {fileID: 61822274}
     - target: {fileID: 6420107528100543420, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
       propertyPath: educationCost
-      value: 200
+      value: 120
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
@@ -18946,7 +18946,7 @@ PrefabInstance:
       objectReference: {fileID: 713822815}
     - target: {fileID: 6420107528100543420, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
       propertyPath: educationCost
-      value: 50
+      value: 40
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
@@ -19719,7 +19719,7 @@ PrefabInstance:
       objectReference: {fileID: 834890957}
     - target: {fileID: 6420107528100543420, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
       propertyPath: educationCost
-      value: 10000
+      value: 70
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
@@ -21714,7 +21714,7 @@ PrefabInstance:
       objectReference: {fileID: 1247071075}
     - target: {fileID: 6420107528100543420, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
       propertyPath: educationCost
-      value: 120
+      value: 80
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
@@ -26682,7 +26682,7 @@ PrefabInstance:
       objectReference: {fileID: 1674858301}
     - target: {fileID: 6420107528100543420, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
       propertyPath: educationCost
-      value: 9500
+      value: 85
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
@@ -27758,7 +27758,7 @@ PrefabInstance:
       objectReference: {fileID: 681983435}
     - target: {fileID: -7277757352528821241, guid: a35c796d2ab7f2249942913ab2d29447, type: 3}
       propertyPath: minSavings
-      value: 20
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: -7277757352528821241, guid: a35c796d2ab7f2249942913ab2d29447, type: 3}
       propertyPath: nextLoopStart
@@ -30516,7 +30516,7 @@ PrefabInstance:
       objectReference: {fileID: 1958712483}
     - target: {fileID: -7277757352528821241, guid: a35c796d2ab7f2249942913ab2d29447, type: 3}
       propertyPath: minSavings
-      value: 30000
+      value: 100
       objectReference: {fileID: 0}
     - target: {fileID: -7277757352528821241, guid: a35c796d2ab7f2249942913ab2d29447, type: 3}
       propertyPath: nextLoopStart
@@ -30524,7 +30524,7 @@ PrefabInstance:
       objectReference: {fileID: 1739120444}
     - target: {fileID: -7277757352528821241, guid: a35c796d2ab7f2249942913ab2d29447, type: 3}
       propertyPath: requiredCareerLevel
-      value: 8
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3625506075260832960, guid: a35c796d2ab7f2249942913ab2d29447, type: 3}
       propertyPath: m_RootOrder
@@ -34683,7 +34683,7 @@ PrefabInstance:
       objectReference: {fileID: 1982843700}
     - target: {fileID: 6420107528100543420, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
       propertyPath: educationCost
-      value: 50
+      value: 40
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
@@ -38033,7 +38033,7 @@ PrefabInstance:
       objectReference: {fileID: 762851699}
     - target: {fileID: 6420107528100543420, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}
       propertyPath: educationCost
-      value: 9500
+      value: 85
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a80a7428af8f37543b8d93ad00cbaf3a, type: 3}

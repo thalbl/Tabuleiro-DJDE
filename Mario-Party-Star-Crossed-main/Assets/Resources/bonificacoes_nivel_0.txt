@@ -1,6 +1,6 @@
-AumentarSalario|300
-GanharMoedasDinheiro|2|500
-GanharDinheiro|1000
-AumentarSalario|200
-GanharMoedasDinheiro|1|300
-GanharDinheiro|500
+AumentarSalario|2
+GanharMoedasDinheiro|2|200
+GanharDinheiro|300
+AumentarSalario|3
+GanharMoedasDinheiro|3|300
+GanharDinheiro|400

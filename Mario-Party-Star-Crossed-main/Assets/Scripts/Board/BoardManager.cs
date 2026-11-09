@@ -38,12 +38,18 @@ public class BoardManager : MonoBehaviour {
         }
         else {
             // Cria novo jogo com n�vel de carreira inicial
+            // Cria novo jogo a partir das configurações definidas no Lobby
+            GameMatchConfig.LoadFromPrefs();
+            int turns = GameMatchConfig.MaxTurns > 0 ? GameMatchConfig.MaxTurns : 30;
+
+            PlayerState ps1 = new PlayerState(GameMatchConfig.Slots[0].ControllerInt, GameMatchConfig.Slots[0].avatarId, GameMatchConfig.Slots[0].name, 1);
+            PlayerState ps2 = new PlayerState(GameMatchConfig.Slots[1].ControllerInt, GameMatchConfig.Slots[1].avatarId, GameMatchConfig.Slots[1].name, 1);
+            PlayerState ps3 = new PlayerState(GameMatchConfig.Slots[2].ControllerInt, GameMatchConfig.Slots[2].avatarId, GameMatchConfig.Slots[2].name, 1);
+            PlayerState ps4 = new PlayerState(GameMatchConfig.Slots[3].ControllerInt, GameMatchConfig.Slots[3].avatarId, GameMatchConfig.Slots[3].name, 1);
+
             state = new GameState(
-                new PlayerState(0, 0, 1),
-                new PlayerState(0, 1, 1),
-                new PlayerState(0, 2, 1),
-                new PlayerState(0, 3, 1),
-                30, 0, false, false, false,
+                ps1, ps2, ps3, ps4,
+                turns, 0, false, false, false,
                 new List<int>() { 0, 0, 0, 0 },
                 new List<bool>() { false }
             );
@@ -71,6 +77,17 @@ public class BoardManager : MonoBehaviour {
         p2.SetPlayer(players[1]);
         p3.SetPlayer(players[2]);
         p4.SetPlayer(players[3]);
+
+        // Inicializa gerenciadores de rede, emotes e HUD de timer se não existirem
+        if (FindObjectOfType<NetworkTurnManager>() == null) {
+            gameObject.AddComponent<NetworkTurnManager>();
+        }
+        if (FindObjectOfType<EmoteReactionUI>() == null) {
+            gameObject.AddComponent<EmoteReactionUI>();
+        }
+        if (FindObjectOfType<TurnTimerUI>() == null) {
+            gameObject.AddComponent<TurnTimerUI>();
+        }
     }
 
     void Update() {
@@ -106,32 +123,48 @@ public class BoardManager : MonoBehaviour {
                 phase = 1;
                 break;
             case 1:
+                NetworkTurnManager.Instance?.NotificarInicioTurno(0, p1);
                 p1.StartTurn();
                 phase = 2;
                 break;
             case 2:
-                if (p1.TurnOver()) phase = 3;
+                if (p1.TurnOver()) {
+                    NetworkTurnManager.Instance?.NotificarFimTurno(0);
+                    phase = 3;
+                }
                 break;
             case 3:
+                NetworkTurnManager.Instance?.NotificarInicioTurno(1, p2);
                 p2.StartTurn();
                 phase = 4;
                 break;
             case 4:
-                if (p2.TurnOver()) phase = 5;
+                if (p2.TurnOver()) {
+                    NetworkTurnManager.Instance?.NotificarFimTurno(1);
+                    phase = 5;
+                }
                 break;
             case 5:
+                NetworkTurnManager.Instance?.NotificarInicioTurno(2, p3);
                 p3.StartTurn();
                 phase = 6;
                 break;
             case 6:
-                if (p3.TurnOver()) phase = 7;
+                if (p3.TurnOver()) {
+                    NetworkTurnManager.Instance?.NotificarFimTurno(2);
+                    phase = 7;
+                }
                 break;
             case 7:
+                NetworkTurnManager.Instance?.NotificarInicioTurno(3, p4);
                 p4.StartTurn();
                 phase = 8;
                 break;
             case 8:
-                if (p4.TurnOver()) phase = 9;
+                if (p4.TurnOver()) {
+                    NetworkTurnManager.Instance?.NotificarFimTurno(3);
+                    phase = 9;
+                }
                 break;
             case 9:
                 // Fase de minigame

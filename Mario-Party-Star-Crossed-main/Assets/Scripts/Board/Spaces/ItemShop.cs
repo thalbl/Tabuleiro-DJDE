@@ -138,7 +138,16 @@ public class ItemShop : BoardSpace {
                     ui.Dialogue("Loja", "Bem-vindo à Loja! O que você gostaria de comprar?", choiceNames, false);
                     yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
 
-                    int answerIndex = choiceNames.IndexOf(ui.MostRecentDialogueAnswer());
+                    string resposta = ui.MostRecentDialogueAnswer();
+                    if (resposta == "Não, obrigado." || string.IsNullOrEmpty(resposta)) {
+                        ui.Dialogue("Loja", "Tudo bem. Volte sempre!", true);
+                        yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
+                        ui.MoveCounter(true);
+                        donePassing = true;
+                        yield break;
+                    }
+
+                    int answerIndex = choiceNames.IndexOf(resposta);
                     if (answerIndex < 0 || answerIndex >= choices.Count) {
                         ui.Dialogue("Loja", "Tudo bem. Volte sempre!", true);
                         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());

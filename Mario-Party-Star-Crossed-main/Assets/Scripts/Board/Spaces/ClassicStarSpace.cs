@@ -36,7 +36,11 @@ public class ClassicStarSpace : BoardSpace {
         ui.MoveCounter(true);
     }
 
-public override int SpacesToStar(bool withKey) {
+    public override int SpacesToStar(bool withKey) {
+        return 0;
+    }
+
+    public override int SpacesToStar(bool withKey, int depth) {
         return 0;
     }
 

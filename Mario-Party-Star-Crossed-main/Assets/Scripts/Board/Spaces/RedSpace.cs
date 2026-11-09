@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -81,41 +81,39 @@ public class RedSpace : BoardSpace {
                 int novoSalario = Mathf.Max(10, p.state.GetSalary() - reducao);
                 p.state.SetBaseSalary(novoSalario);
 
-                ui.Dialogue(titulo, $"Mesada reduzida em {reducao}/turno!", true);
+                ui.Dialogue(titulo, $"Cortes Operacionais!\nSalário reduzido em -{reducao} Moedas/turno!", true);
                 break;
 
             case "GastarDinheiro":
                 int gastoBase = valores[0];
                 int gasto = gastoBase * nivelCarreira;
-                p.state.SetDinheiro(Mathf.Max(0, p.state.GetDinheiro() - gasto));
+                p.state.changeCoins(-gasto);
 
                 string motivo = categoria switch {
-                    0 => "Perdeu o brinquedo",
-                    1 => "Comprou doces demais",
-                    2 => "Quebrou algo",
-                    _ => "Esqueceu o troco"
+                    0 => "Despesa imprevista com transporte",
+                    1 => "Manutenção de equipamento",
+                    2 => "Imposto e ajuste tributário",
+                    _ => "Crise setorial de mercado"
                 };
-                ui.Dialogue(titulo, $"{motivo}: {gasto} Moedas", true);
+                ui.Dialogue(titulo, $"{motivo}:\n-{gasto} Moedas pagas!", true);
                 break;
 
             case "PerderMoedas":
                 int moedasPerdidasBase = valores[0];
                 int moedasPerdidas = Mathf.Min(moedasPerdidasBase + nivelCarreira, p.state.getCoins());
                 p.state.changeCoins(-moedasPerdidas);
-                ui.Dialogue(titulo, $"-{moedasPerdidas} moedas!", true);
+                ui.Dialogue(titulo, $"Prejuízo imprevisto: -{moedasPerdidas} Moedas!", true);
                 break;
 
             case "Demissao":
-                // Sï¿½ rebaixa se nï¿½o estiver no nï¿½vel mï¿½nimo (1)
                 if (p.state.GetCareerLevel() > 1) {
                     p.state.Demote();
-                    ui.Dialogue("Retrocesso", $"Você foi rebaixado para {p.state.GetCareerTitle()}!", true);
+                    ui.Dialogue("Retrocesso Profissional", $"Devido a uma reestruturação, você foi rebaixado para {p.state.GetCareerTitle()}!", true);
                 }
                 else {
-                    // Penalidade alternativa para quem jï¿½ estï¿½ no nï¿½vel mais baixo
-                    int perdaAlternativa = 5 * nivelCarreira;
-                    p.state.SetDinheiro(p.state.GetDinheiro() - perdaAlternativa);
-                    ui.Dialogue("Problema Profissional", $"Você perdeu ${perdaAlternativa} devido a um erro profissional!", true);
+                    int perdaAlternativa = 6 * nivelCarreira;
+                    p.state.changeCoins(-perdaAlternativa);
+                    ui.Dialogue("Advertência Profissional", $"Falha em entrega importante: -{perdaAlternativa} Moedas de multa!", true);
                 }
                 break;
         }

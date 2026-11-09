@@ -97,6 +97,9 @@ public class UIManager : MonoBehaviour {
         spinner = transform.Find("Spinner").gameObject;
         turnTracker = standings.transform.Find("Turn").gameObject;
         turnTrackerDrop = turnTracker.transform.Find("Drop").gameObject;
+        if (turnTracker != null) {
+            turnTracker.transform.SetParent(this.transform, false);
+        }
 
         optionA = options.transform.Find("Option A").gameObject;
         optionB = options.transform.Find("Option B").gameObject;
@@ -208,7 +211,9 @@ public class UIManager : MonoBehaviour {
         }
 
         turnTracker.GetComponent<Text>().text = game.state.getTurnText();
-        turnTrackerDrop.GetComponent<Text>().text = game.state.getTurnText();
+        if (turnTrackerDrop != null && turnTrackerDrop.activeSelf) {
+            turnTrackerDrop.GetComponent<Text>().text = game.state.getTurnText();
+        }
 
         if (dialogueText.text != targetText) {
             charsShown += 1;
@@ -268,7 +273,8 @@ public class UIManager : MonoBehaviour {
 
     public void YourTurn(string character, Color color) {
         comTime = 0.0f;
-        yourTurn.GetComponent<Text>().text = "Go, " + character + "!";
+        string tipo = (controller == 0) ? " (Humano)" : ((controller == 5) ? " (Online)" : " (CPU)");
+        yourTurn.GetComponent<Text>().text = "Vez de " + character + "!" + tipo;
         mostRecentPrompt = "Splash Screen";
         yourTurnColor.color = color;
         ToggleActivity(-1, -1, 1, -1, 0, -1, -1, -1);
@@ -287,7 +293,7 @@ public class UIManager : MonoBehaviour {
         comTime = 0.0f;
         charsShown = 0;
         this.endOfChain = endOfChain;
-        speakerText.text = speaker;
+        SetSpeaker(speaker);
         mostRecentPrompt = "Dialogue";
         ToggleActivity(1, 1, -1, -1, 0, -1, 0, -1);
         this.targetText = targetText;
@@ -300,8 +306,11 @@ public class UIManager : MonoBehaviour {
         this.mostRecentAns = "";
         mostRecentPrompt = "Options";
         ToggleActivity(1, -1, -1, 1, 0, -1, 0, -1);
-        this.choices = choices;
+        this.choices = choices != null ? new List<string>(choices) : new List<string>();
         this.choices.Reverse();
+        if (choiceDescriptions != null && choiceDescriptions.Count != this.choices.Count) {
+            choiceDescriptions = new List<string>();
+        }
         SetOptions();
         this.targetText = targetText;
         // Armazenar o texto original para restauração
@@ -313,12 +322,15 @@ public class UIManager : MonoBehaviour {
         comTime = 0.0f;
         charsShown = 0;
         this.endOfChain = endOfChain;
-        speakerText.text = speaker;
+        SetSpeaker(speaker);
         this.mostRecentAns = "";
         mostRecentPrompt = "Options";
         ToggleActivity(1, 1, -1, 1, 0, -1, 0, -1);
-        this.choices = choices;
+        this.choices = choices != null ? new List<string>(choices) : new List<string>();
         this.choices.Reverse();
+        if (choiceDescriptions != null && choiceDescriptions.Count != this.choices.Count) {
+            choiceDescriptions = new List<string>();
+        }
         SetOptions();
         this.targetText = targetText;
         // Armazenar o texto original para restauração
@@ -328,14 +340,8 @@ public class UIManager : MonoBehaviour {
 
     // Novos: descrições das opções
     public void SetOptionDescriptions(List<string> descriptions) {
-        choiceDescriptions = descriptions ?? new List<string>();
+        choiceDescriptions = descriptions != null ? new List<string>(descriptions) : new List<string>();
         choiceDescriptions.Reverse(); // alinhar com a ordem invertida das opções
-        
-        // Garantir que o número de descrições corresponde ao número de opções
-        if (choices != null && choiceDescriptions.Count != choices.Count) {
-            // Se não há correspondência, limpar as descrições para evitar confusão
-            choiceDescriptions = new List<string>();
-        }
     }
 
     // Método para limpar descrições quando apropriado
@@ -354,7 +360,7 @@ public class UIManager : MonoBehaviour {
             dialogueText.text = targetText;
             charsShown = targetText.Length;
             if (!string.IsNullOrEmpty(originalSpeakerText)) {
-                speakerText.text = originalSpeakerText;
+                SetSpeaker(originalSpeakerText);
             }
         }
     }
@@ -370,10 +376,38 @@ public class UIManager : MonoBehaviour {
         } else {
             // Se há descrição, mostra normalmente (sem animação)
             character.SetActive(true);
-            speakerText.text = title;
+            SetSpeaker(title);
             targetText = description;
             charsShown = targetText.Length; // Definir charsShown ANTES de atualizar dialogueText para evitar animação
             dialogueText.text = targetText; // Atualizar texto imediatamente
+        }
+    }
+
+    public void SetSpeaker(string speaker) {
+        if (speakerText == null) return;
+        speakerText.text = speaker;
+        AjustarLarguraAbaLocutor();
+    }
+
+    public void AjustarLarguraAbaLocutor() {
+        if (speakerText == null || character == null) return;
+
+        // Força atualização da malha/preferências de layout para o texto
+        float textWidth = speakerText.preferredWidth;
+        if (textWidth <= 0f && !string.IsNullOrEmpty(speakerText.text)) {
+            TextGenerationSettings settings = speakerText.GetGenerationSettings(new Vector2(1500f, 60f));
+            textWidth = speakerText.cachedTextGeneratorForLayout.GetPreferredWidth(speakerText.text, settings);
+        }
+
+        // Padding horizontal generoso (40px de cada lado = 80px total) para nunca encostar nas bordas arredondadas
+        float paddingHorizontal = 80f;
+        float minLargura = 280f;
+        float maxLargura = 750f;
+        float larguraDesejada = Mathf.Clamp(textWidth + paddingHorizontal, minLargura, maxLargura);
+
+        RectTransform rt = character.GetComponent<RectTransform>();
+        if (rt != null) {
+            rt.sizeDelta = new Vector2(larguraDesejada, 62f);
         }
     }
 
@@ -507,6 +541,18 @@ public class UIManager : MonoBehaviour {
 
         // Estiliza e reposiciona as opções de ação dinamicamente
         EstilizarEReposicionarOpcoes();
+
+        // Bloqueio de autoridade: se não for a vez do jogador local, desabilita a interação com os botões
+        bool podeInteragir = (NetworkTurnManager.Instance == null || NetworkTurnManager.Instance.PodeJogadorLocalInteragir());
+        GameObject[] botoes = new GameObject[] { optionA, optionB, optionC, optionD, optionE };
+        for (int i = 0; i < botoes.Length; i++) {
+            if (botoes[i] == null) continue;
+            Button b = botoes[i].GetComponent<Button>();
+            CanvasGroup cg = botoes[i].GetComponent<CanvasGroup>();
+            if (cg == null) cg = botoes[i].AddComponent<CanvasGroup>();
+            if (b != null) b.interactable = podeInteragir;
+            cg.alpha = podeInteragir ? 1.0f : 0.55f;
+        }
     }
 
     public void SetMoveCounterNumber(int i) {
@@ -518,18 +564,31 @@ public class UIManager : MonoBehaviour {
     }
 
     public bool WaitForDialogueAnswer() {
-        if (controller == 0) {
+        bool podeInteragir = (NetworkTurnManager.Instance == null || NetworkTurnManager.Instance.PodeJogadorLocalInteragir());
+
+        if (podeInteragir) {
             if (mostRecentPrompt == "Spinner") {
                 return !spinning;
             } else if (mostRecentPrompt == "Options") {
-                return mostRecentAns != "";
+                return !string.IsNullOrEmpty(mostRecentAns);
             } else {
                 return Input.GetKeyDown(KeyCode.Space) || MobileInputManager.IsTouchOrClickDown();
             }
         } else if (controller == 5) {
-            // REMOTE PLAYER
+            // JOGADOR REMOTO ONLINE
+            // Se já recebeu a resposta remota sincronizada, avança!
+            if (!string.IsNullOrEmpty(mostRecentAns)) {
+                return true;
+            }
+            // Se o diálogo for apenas informativo (sem botões de opções), avança automaticamente após tempo de leitura
+            if (mostRecentPrompt == "Dialogue" || mostRecentPrompt == "Splash Screen") {
+                if (comTime >= 1.5f) {
+                    return true;
+                }
+            }
             return false;
         } else {
+            // BOT (IA)
             if (comTime >= 1.0f) {
                 if (mostRecentPrompt == "Spinner") {
                     spinnerLoc = Random.Range(1, 7);
@@ -545,6 +604,10 @@ public class UIManager : MonoBehaviour {
         }
     }
 
+    public void ReceberEscolhaRemota(string escolha) {
+        this.mostRecentAns = escolha;
+    }
+
     public string MostRecentDialogueAnswer() {
         return mostRecentAns;
     }
@@ -558,28 +621,38 @@ public class UIManager : MonoBehaviour {
     }
 
     public void OptionAClicked() {
+        if (NetworkTurnManager.Instance != null && !NetworkTurnManager.Instance.PodeJogadorLocalInteragir()) return;
         HapticFeedback.Vibrate();
         mostRecentAns = choices[0];
+        NetworkTurnManager.Instance?.NotificarOpcaoEscolhida(mostRecentAns);
     }
 
     public void OptionBClicked() {
+        if (NetworkTurnManager.Instance != null && !NetworkTurnManager.Instance.PodeJogadorLocalInteragir()) return;
         HapticFeedback.Vibrate();
         mostRecentAns = choices[1];
+        NetworkTurnManager.Instance?.NotificarOpcaoEscolhida(mostRecentAns);
     }
 
     public void OptionCClicked() {
+        if (NetworkTurnManager.Instance != null && !NetworkTurnManager.Instance.PodeJogadorLocalInteragir()) return;
         HapticFeedback.Vibrate();
         mostRecentAns = choices[2];
+        NetworkTurnManager.Instance?.NotificarOpcaoEscolhida(mostRecentAns);
     }
 
     public void OptionDClicked() {
+        if (NetworkTurnManager.Instance != null && !NetworkTurnManager.Instance.PodeJogadorLocalInteragir()) return;
         HapticFeedback.Vibrate();
         mostRecentAns = choices[3];
+        NetworkTurnManager.Instance?.NotificarOpcaoEscolhida(mostRecentAns);
     }
 
     public void OptionEClicked() {
+        if (NetworkTurnManager.Instance != null && !NetworkTurnManager.Instance.PodeJogadorLocalInteragir()) return;
         HapticFeedback.Vibrate();
         mostRecentAns = choices[4];
+        NetworkTurnManager.Instance?.NotificarOpcaoEscolhida(mostRecentAns);
     }
 
     // Método para atualizar o menu de detalhes se estiver aberto
@@ -710,41 +783,89 @@ public class UIManager : MonoBehaviour {
                 if (fonte != null) speakerText.font = fonte;
                 speakerText.color = new Color(0.25f, 0.08f, 0.01f, 1f); // Marrom escuro contrastante
                 speakerText.fontStyle = FontStyle.Bold;
-                speakerText.fontSize = 34;
+                speakerText.fontSize = 30;
+                speakerText.resizeTextForBestFit = true;
+                speakerText.resizeTextMinSize = 18;
+                speakerText.resizeTextMaxSize = 30;
                 speakerText.alignment = TextAnchor.MiddleCenter;
-                speakerText.horizontalOverflow = HorizontalWrapMode.Overflow;
-                speakerText.verticalOverflow = VerticalWrapMode.Overflow;
+                speakerText.horizontalOverflow = HorizontalWrapMode.Wrap;
+                speakerText.verticalOverflow = VerticalWrapMode.Truncate;
 
                 RectTransform stRT = speakerText.GetComponent<RectTransform>();
                 if (stRT != null) {
                     stRT.anchorMin = Vector2.zero;
                     stRT.anchorMax = Vector2.one;
-                    stRT.offsetMin = new Vector2(15f, 5f);
-                    stRT.offsetMax = new Vector2(-15f, -5f);
+                    stRT.offsetMin = new Vector2(20f, 4f);
+                    stRT.offsetMax = new Vector2(-20f, -4f);
                 }
+
+                AjustarLarguraAbaLocutor();
             }
         }
 
-        // 3. Estilização do Contador de Turno na HUD com FONTE AUMENTADA
+        // 3. Estilização do Contador de Turno na HUD com FUNDO DARK SLATE GLASS
         if (turnTracker != null) {
+            // Cria um GameObject filho para o fundo, pois o Unity UI não permite Image e Text no mesmo GameObject
+            Transform bgTrans = turnTracker.transform.Find("TurnBg");
+            GameObject bgObj;
+            if (bgTrans == null) {
+                bgObj = new GameObject("TurnBg");
+                bgObj.transform.SetParent(turnTracker.transform, false);
+                bgObj.transform.SetAsFirstSibling(); // Garante que o fundo fica ATRÁS do texto
+            } else {
+                bgObj = bgTrans.gameObject;
+            }
+
+            RectTransform rtBg = bgObj.GetComponent<RectTransform>();
+            if (rtBg == null) rtBg = bgObj.AddComponent<RectTransform>();
+            rtBg.anchorMin = Vector2.zero;
+            rtBg.anchorMax = Vector2.one;
+            rtBg.sizeDelta = Vector2.zero;
+            rtBg.anchoredPosition = Vector2.zero;
+
+            Image turnBg = bgObj.GetComponent<Image>();
+            if (turnBg == null) turnBg = bgObj.AddComponent<Image>();
+            if (turnBg != null) {
+                turnBg.sprite = spriteArredondado;
+                turnBg.type = Image.Type.Sliced;
+                turnBg.color = new Color(0.04f, 0.12f, 0.08f, 0.94f); // Dark Slate Glass combinando com a HUD
+            }
+
+            Outline turnOutline = bgObj.GetComponent<Outline>();
+            if (turnOutline == null) turnOutline = bgObj.AddComponent<Outline>();
+            if (turnOutline != null) {
+                turnOutline.effectColor = new Color(0.98f, 0.75f, 0.14f, 0.60f); // Borda Dourada Vibrante
+                turnOutline.effectDistance = new Vector2(1.5f, -1.5f);
+            }
+
+            Shadow turnShadow = bgObj.GetComponent<Shadow>();
+            if (turnShadow == null) turnShadow = bgObj.AddComponent<Shadow>();
+            if (turnShadow != null) {
+                turnShadow.effectColor = new Color(0f, 0f, 0f, 0.5f);
+                turnShadow.effectDistance = new Vector2(2f, -2f);
+            }
+
             Text tMain = turnTracker.GetComponent<Text>();
             if (tMain != null) {
                 if (fonte != null) tMain.font = fonte;
-                tMain.fontSize = 46;
+                tMain.fontSize = 26;
                 tMain.fontStyle = FontStyle.Bold;
-                tMain.horizontalOverflow = HorizontalWrapMode.Overflow;
-                tMain.verticalOverflow = VerticalWrapMode.Overflow;
+                tMain.alignment = TextAnchor.MiddleCenter;
+                tMain.color = new Color(1f, 0.86f, 0.22f, 1f); // Dourado brilhante
+                tMain.horizontalOverflow = HorizontalWrapMode.Wrap;
+                tMain.verticalOverflow = VerticalWrapMode.Truncate;
+            }
+
+            RectTransform rtTurn = turnTracker.GetComponent<RectTransform>();
+            if (rtTurn != null) {
+                rtTurn.anchorMin = new Vector2(1f, 1f);
+                rtTurn.anchorMax = new Vector2(1f, 1f);
+                rtTurn.pivot = new Vector2(1f, 1f);
+                rtTurn.sizeDelta = new Vector2(240f, 46f);
             }
         }
         if (turnTrackerDrop != null) {
-            Text tDrop = turnTrackerDrop.GetComponent<Text>();
-            if (tDrop != null) {
-                if (fonte != null) tDrop.font = fonte;
-                tDrop.fontSize = 46;
-                tDrop.fontStyle = FontStyle.Bold;
-                tDrop.horizontalOverflow = HorizontalWrapMode.Overflow;
-                tDrop.verticalOverflow = VerticalWrapMode.Overflow;
-            }
+            turnTrackerDrop.SetActive(false); // Desativa o texto de sombra duplicado legado
         }
 
         // 4. Estilização do Contador de Passos (Spaces Left) com FONTE AUMENTADA
@@ -982,7 +1103,7 @@ public class UIManager : MonoBehaviour {
 
                 // Posicionado exatamente em cima do teto da caixa de diálogo no canto esquerdo
                 rt.anchoredPosition = new Vector2(sidePadding + 25f, bottomPadding + dialogHeight - 4f);
-                rt.sizeDelta = new Vector2(340f, 62f);
+                AjustarLarguraAbaLocutor();
             }
         }
 
@@ -993,6 +1114,24 @@ public class UIManager : MonoBehaviour {
                 Vector2 pos = rt.anchoredPosition;
                 pos.y = -topPadding - 80f;
                 rt.anchoredPosition = pos;
+            }
+        }
+
+        // 5. Ajustar Timer de Turno (Canto Superior Direito, no topo)
+        if (TurnTimerUI.Instance != null) {
+            TurnTimerUI.Instance.AtualizarPosicao(sidePadding, topPadding);
+        }
+
+        // 6. Ajustar Contador de Turno (Turn) - Posicionado LOGO ABAIXO do Timer
+        if (turnTracker != null) {
+            RectTransform rtTurn = turnTracker.GetComponent<RectTransform>();
+            if (rtTurn != null) {
+                rtTurn.anchorMin = new Vector2(1f, 1f);
+                rtTurn.anchorMax = new Vector2(1f, 1f);
+                rtTurn.pivot = new Vector2(1f, 1f);
+                rtTurn.sizeDelta = new Vector2(250f, 48f);
+                // Timer no topo (-topPadding - 8f, altura 56f). Turn fica 10px abaixo dele:
+                rtTurn.anchoredPosition = new Vector2(-sidePadding - 25f, -topPadding - 74f);
             }
         }
     }

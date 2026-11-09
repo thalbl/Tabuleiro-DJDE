@@ -119,18 +119,65 @@ public class GameState {
         turnsCompleted += 1;
     }
 
+    public static string SaveFilePath {
+        get {
+            return Path.Combine(Application.persistentDataPath, "mario_party_save.dat");
+        }
+    }
+
+    public static bool HasSaveGame() {
+        if (File.Exists(SaveFilePath)) return true;
+        // Fallback legado para PC/Editor
+        string legacyPath = Application.dataPath + "/Data/mario_party_save.dat";
+        return File.Exists(legacyPath);
+    }
+
+    public static void DeleteSaveGame() {
+        try {
+            if (File.Exists(SaveFilePath)) {
+                File.Delete(SaveFilePath);
+            }
+        } catch (System.Exception e) {
+            Debug.LogWarning($"[GameState] Erro ao deletar save em {SaveFilePath}: {e.Message}");
+        }
+
+        try {
+            string legacyPath = Application.dataPath + "/Data/mario_party_save.dat";
+            if (File.Exists(legacyPath)) {
+                File.Delete(legacyPath);
+            }
+        } catch {}
+    }
+
     public string SaveGame() {
-        string directoryPath = Application.dataPath + "/Data";
-        if (!Directory.Exists(directoryPath)) {
+        string activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        if (!string.IsNullOrEmpty(activeScene) && activeScene != "StartScene" && activeScene != "GameOverScene") {
+            PlayerPrefs.SetString("SavedGame_MapScene", activeScene);
+            PlayerPrefs.Save();
+        }
+        string filePath = SaveFilePath;
+        string directoryPath = Path.GetDirectoryName(filePath);
+        if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath)) {
             Directory.CreateDirectory(directoryPath);
         }
-        string filePath = directoryPath + "/mario_party_save.dat";
         File.WriteAllText(filePath, JsonUtility.ToJson(this));
         return filePath;
     }
 
+    public static string GetSavedMapScene() {
+        string scene = PlayerPrefs.GetString("SavedGame_MapScene", "MVP");
+        return string.IsNullOrEmpty(scene) ? "MVP" : scene;
+    }
+
     public static GameState LoadGame() {
-        string filePath = Application.dataPath + "/Data/mario_party_save.dat";
+        string filePath = SaveFilePath;
+        if (!File.Exists(filePath)) {
+            string legacyPath = Application.dataPath + "/Data/mario_party_save.dat";
+            if (File.Exists(legacyPath)) {
+                filePath = legacyPath;
+            }
+        }
+
         if (File.Exists(filePath)) {
             return JsonUtility.FromJson<GameState>(File.ReadAllText(filePath));
         }

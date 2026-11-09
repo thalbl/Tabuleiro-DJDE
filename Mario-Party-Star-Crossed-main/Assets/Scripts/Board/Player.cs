@@ -23,14 +23,23 @@ public class Player : MonoBehaviour {
 
     // Start is called before the first frame update
     void Start() {
-        ui = FindObjectOfType<UIManager>();
-        game = FindObjectOfType<BoardManager>();
+        if (ui == null) ui = FindObjectOfType<UIManager>();
+        if (game == null) game = FindObjectOfType<BoardManager>();
         myCam = GetComponentsInChildren<Camera>()[0];
         myCam.enabled = false;
-        // Moeda unificada: não precisa mais inicializar dinheiro separado
+        AtualizarBrain();
+    }
+
+    public void AtualizarBrain() {
+        if (game == null) game = FindObjectOfType<BoardManager>();
+        if (game == null || state == null || game.p1 == null || game.p2 == null || game.p3 == null || game.p4 == null) return;
+        if (game.p1.state == null || game.p2.state == null || game.p3.state == null || game.p4.state == null) return;
+
         List<PlayerState> rivals = new List<PlayerState>() { game.p1.state, game.p2.state, game.p3.state, game.p4.state };
         rivals.Remove(state);
-        if (state.getController() == 0) {
+        if (rivals.Count < 3) return;
+
+        if (state.getController() == 0 || state.getController() == 5) {
             brain = new PlayerBrain(state, rivals[0], rivals[1], rivals[2], game);
         } else {
             brain = new EasyBrain(state, rivals[0], rivals[1], rivals[2], game);
@@ -43,11 +52,19 @@ public class Player : MonoBehaviour {
     }
 
     public IEnumerator TakeTurn() {
+        if (brain == null || (state.getController() != 0 && state.getController() != 5 && brain is PlayerBrain)) {
+            AtualizarBrain();
+        }
         ui.SetController(state.getController());
         ui.SetDecisionAI(brain);
         myCam.enabled = true;
 
         // Avisos de promoção passiva e despesas extras serão exibidos após o jogador concluir suas ações.
+
+        if (GameMatchConfig.PassAndPlayEnabled && state.getController() == 0) {
+            ui.Dialogue("Pass & Play", $"Vez de {state.charName()}!\nPasse o dispositivo para este jogador.", true);
+            yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
+        }
 
         ui.YourTurn(state.charName(), state.charColor());
         usedItem = false;
@@ -505,8 +522,10 @@ public class Player : MonoBehaviour {
     }
 
     public void SetPlayer(PlayerState ps) {
+        if (game == null) game = FindObjectOfType<BoardManager>();
         this.state = ps;
         this.setNextSpace(game.GetSpaceFromID(ps.getSpaceID()), true);
+        AtualizarBrain();
     }
 
     public void setNextSpace(BoardSpace b, bool instant) {

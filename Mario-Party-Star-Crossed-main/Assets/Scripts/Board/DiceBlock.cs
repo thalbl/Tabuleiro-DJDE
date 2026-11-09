@@ -93,14 +93,19 @@ public class DiceBlock : MonoBehaviour {
             }
         }
 
-        // Suporte Mobile e Desktop: tecla Espaço, toque na tela (humano) ou timeout (COM)
-        bool isHumanTurn = transform.parent != null &&
-                            transform.parent.gameObject.GetComponent<Player>() != null &&
-                            transform.parent.gameObject.GetComponent<Player>().state.getController() == 0;
+        // Verificação de autoridade: apenas o jogador local dono do turno pode rolar por toque ou tecla
+        bool podeInteragir = (NetworkTurnManager.Instance == null || NetworkTurnManager.Instance.PodeJogadorLocalInteragir());
+        int ctrl = 0;
+        if (transform.parent != null && transform.parent.gameObject.GetComponent<Player>() != null) {
+            ctrl = transform.parent.gameObject.GetComponent<Player>().state.getController();
+        }
+        bool isHumanTurn = podeInteragir && (ctrl == 0 || ctrl == 5);
+        bool isBotTurn = (ctrl == 1 || ctrl == 2);
 
         bool touchTriggered = isHumanTurn && MobileInputManager.IsTouchOrClickDown();
 
-        if (Input.GetKeyDown(KeyCode.Space) || touchTriggered || comTimer >= 1.5f) {
+        // Se for a vez do jogador local, ele dispara por Espaço/Toque. Se for Bot, dispara por tempo
+        if (((Input.GetKeyDown(KeyCode.Space) || touchTriggered) && isHumanTurn) || (comTimer >= 1.5f && isBotTurn)) {
             TriggerRoll();
         }
     }
@@ -109,9 +114,13 @@ public class DiceBlock : MonoBehaviour {
     /// Permite rolar tocando ou clicando diretamente sobre o modelo 3D do dado.
     /// </summary>
     void OnMouseDown() {
-        bool isHumanTurn = transform.parent != null &&
-                            transform.parent.gameObject.GetComponent<Player>() != null &&
-                            transform.parent.gameObject.GetComponent<Player>().state.getController() == 0;
+        bool podeInteragir = (NetworkTurnManager.Instance == null || NetworkTurnManager.Instance.PodeJogadorLocalInteragir());
+        int ctrl = 0;
+        if (transform.parent != null && transform.parent.gameObject.GetComponent<Player>() != null) {
+            ctrl = transform.parent.gameObject.GetComponent<Player>().state.getController();
+        }
+        bool isHumanTurn = podeInteragir && (ctrl == 0 || ctrl == 5);
+
         if (isHumanTurn && rend != null && rend.enabled) {
             TriggerRoll();
         }
@@ -125,12 +134,24 @@ public class DiceBlock : MonoBehaviour {
         foreach (ParticleSystem part in particles) {
             if (part != null) part.Play();
         }
+
+        // Notifica sincronização de rede
+        NetworkTurnManager.Instance?.NotificarDadoRolado(currentRoll);
+
         if (leader) {
             transform.parent.gameObject.GetComponent<Player>().SendRoll(currentRoll);
         } else {
             transform.parent.gameObject.GetComponent<DiceBlock>().PassAlongRoll(currentRoll);
         }
         Destroy(gameObject, 1.0f);
+    }
+
+    /// <summary>
+    /// Força o dado a parar no valor recebido do adversário remoto via rede.
+    /// </summary>
+    public void ForcarRolagemRemota(int roll) {
+        currentRoll = Mathf.Clamp(roll, 1, maxRoll);
+        TriggerRoll();
     }
 
     public void AskForDirection(Transform t) {

@@ -95,17 +95,17 @@ public abstract class BoardSpace : MonoBehaviour {
     }
 
     public IEnumerator GivePlayerItem(Player p, BoardItem i, bool endOfChain) {
-        bool bolsoCheio = !p.state.addItem(i); // Verifica se o invent�rio est� cheio
+        bool bolsoCheio = !p.state.addItem(i); // Verifica se o inventário está cheio
         ui.Dialogue("Você obteve um(a) " + ItemSpace.itemNames[(int)i] + "!", !bolsoCheio && endOfChain);
         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
 
         if (bolsoCheio) {
-            // Lista os itens que o jogador est� carregando
+            // Lista os itens que o jogador está carregando
             List<string> itensDoJogador = new List<string>();
             foreach (BoardItem b in p.state.getItems()) {
                 itensDoJogador.Add(ItemSpace.itemNames[(int)b]);
             }
-            itensDoJogador.Add(ItemSpace.itemNames[(int)i]); // Adiciona o novo item  lista
+            itensDoJogador.Add(ItemSpace.itemNames[(int)i]); // Adiciona o novo item à lista
 
             // Pergunta ao jogador qual item deseja descartar
             ui.Dialogue("Você está carregando muitos itens. Escolha um para descartar.", itensDoJogador, false);
@@ -128,7 +128,14 @@ public abstract class BoardSpace : MonoBehaviour {
     }
 
     public virtual int SpacesToStar(bool withKey) {
-        return next.SpacesToStar(withKey) + (this.canLandHere ? 1 : 0);
+        return SpacesToStar(withKey, 0);
+    }
+
+    public virtual int SpacesToStar(bool withKey, int depth) {
+        if (depth >= 30 || next == null) {
+            return 30;
+        }
+        return next.SpacesToStar(withKey, depth + 1) + (this.canLandHere ? 1 : 0);
     }
 
     public virtual int PlayersInRange(int range) {
@@ -145,7 +152,7 @@ public abstract class BoardSpace : MonoBehaviour {
         if (id == game.p4.state.getSpaceID()) {
             playersHere += 1;
         }
-        if (range == 0 && this.canLandHere) {
+        if ((range <= 0 && this.canLandHere) || next == null) {
             return playersHere;
         } else {
             return next.PlayersInRange(range - (this.canLandHere ? 1 : 0)) + playersHere;
@@ -155,14 +162,21 @@ public abstract class BoardSpace : MonoBehaviour {
     public abstract int AIValue(PlayerState state, List<PlayerState> rivals);
 
     public virtual int CumulativeValue(PlayerState state, List<PlayerState> rivals, int roll) {
+        return CumulativeValue(state, rivals, roll, 0);
+    }
+
+    public virtual int CumulativeValue(PlayerState state, List<PlayerState> rivals, int roll, int depth) {
+        if (depth >= 40 || next == null) {
+            return AIValue(state, rivals);
+        }
         if (canLandHere) {
-            if (roll == 0) {
+            if (roll <= 0) {
                 return AIValue(state, rivals) - (state.getCoins() >= 20 ? SpacesToStar(state.getItems().Contains(BoardItem.SkeletonKey)) : 0);
             } else {
-                return next.CumulativeValue(state, rivals, roll - 1);
+                return next.CumulativeValue(state, rivals, roll - 1, depth + 1);
             }
         } else {
-            return AIValue(state, rivals) + next.CumulativeValue(state, rivals, roll);
+            return AIValue(state, rivals) + next.CumulativeValue(state, rivals, roll, depth + 1);
         }
     }
 

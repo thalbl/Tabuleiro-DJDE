@@ -7,6 +7,7 @@ public class PlayerState : ISerializationCallbackReceiver {
     // PLAYER CONFIG
     [SerializeField] private int controller;
     [SerializeField] private int avatar;
+    [SerializeField] private string customPlayerName = "";
 
     // VISIBLE PLAYER DATA
     [SerializeField] private int coins;
@@ -20,6 +21,10 @@ public class PlayerState : ISerializationCallbackReceiver {
     [SerializeField] private string profissao;
     [SerializeField] private int salarioBase;
     [SerializeField] private int salarioAtual;
+    // Aumentos/cortes acumulados (casas azul/vermelha). Somado ao salário do nível,
+    // para não se perder quando Promote()/Demote() recalculam o salário.
+    [SerializeField] private int ajusteSalario;
+    [SerializeField] private bool ajusteSalarioMigrado;
     [SerializeField] private int despesaBase;
     [SerializeField] private int despesaAtual;
 
@@ -104,6 +109,11 @@ public class PlayerState : ISerializationCallbackReceiver {
             this.coins += Mathf.Max(1, dinheiro / 100);
             this.dinheiro = 0;
         }
+        // Saves antigos guardavam aumentos/cortes direto em salarioAtual: preserva como ajuste
+        if (!ajusteSalarioMigrado) {
+            ajusteSalario = salarioAtual - SalarioDoNivel();
+            ajusteSalarioMigrado = true;
+        }
     }
 
     public PlayerState(int controller, int avatar, int initialCareerLevel = 1) {
@@ -131,7 +141,17 @@ public class PlayerState : ISerializationCallbackReceiver {
 
         this.careerLevel = initialCareerLevel;
         this.educationLevel = 0;
+        this.ajusteSalario = 0;
+        this.ajusteSalarioMigrado = true;
         AtribuirProfissao();
+    }
+
+    public PlayerState(int controller, int avatar, string customName, int initialCareerLevel = 1) : this(controller, avatar, initialCareerLevel) {
+        this.customPlayerName = customName;
+    }
+
+    public void setCustomName(string name) {
+        this.customPlayerName = name;
     }
 
     // ================== SISTEMA PROFISSIONAL ==================
@@ -155,8 +175,12 @@ public class PlayerState : ISerializationCallbackReceiver {
         this.despesaAtual = Mathf.RoundToInt(despesaBase * CareerMultipliers[careerLevel - 1]);
     }
 
+    private int SalarioDoNivel() {
+        return Mathf.RoundToInt(salarioBase * CareerMultipliers[Mathf.Clamp(careerLevel - 1, 0, CareerMultipliers.Length - 1)]);
+    }
+
     private void AtualizarSalarioPorNivel() {
-        this.salarioAtual = Mathf.RoundToInt(salarioBase * CareerMultipliers[Mathf.Clamp(careerLevel - 1, 0, CareerMultipliers.Length - 1)]);
+        this.salarioAtual = Mathf.Max(10, SalarioDoNivel() + ajusteSalario);
     }
 
     // ================== SISTEMA DE CARREIRA ==================
@@ -193,13 +217,19 @@ public class PlayerState : ISerializationCallbackReceiver {
     // Moeda Unificada: GetDinheiro/SetDinheiro agora usam coins diretamente
     public int GetDinheiro() => this.coins;
     public void SetDinheiro(int novoDinheiro) => this.coins = Mathf.Clamp(novoDinheiro, 0, 9999);
-    public void SetBaseSalary(int newSalary) => this.salarioAtual = newSalary;
-    // Mï¿½todo para obter o titulo da carreira
-    public string GetCareerTitle() {
-        if (CareerTitles.ContainsKey(careerLevel)) {
-            return CareerTitles[careerLevel];
+    // Define o salário atual guardando a diferença como ajuste persistente (sobrevive a promoções)
+    public void SetBaseSalary(int newSalary) {
+        this.ajusteSalario = newSalary - SalarioDoNivel();
+        AtualizarSalarioPorNivel();
+    }
+    // Método para obter o titulo da carreira
+    public string GetCareerTitle() => ObterTituloCarreira(careerLevel);
+
+    public static string ObterTituloCarreira(int level) {
+        if (CareerTitles.ContainsKey(level)) {
+            return CareerTitles[level];
         }
-        return CareerTitles[10]; // Default para o nivel maximo
+        return CareerTitles[10];
     }
 
     // Mï¿½todo para obter o titulo + nivel formatado
@@ -346,6 +376,9 @@ public class PlayerState : ISerializationCallbackReceiver {
 
 
     public string charName() {
+        if (!string.IsNullOrEmpty(this.customPlayerName)) {
+            return this.customPlayerName;
+        }
         switch (this.avatar) {
             case 1: return "João";
             case 2: return "Maria";

@@ -78,12 +78,11 @@ public class BlueSpace : BoardSpace {
 
         switch (tipo) {
             case "AumentarSalario":
-                // O valor base é multiplicado por um fator baseado no nível
                 int aumentoBase = valores[0];
                 int aumento = aumentoBase * nivelCarreira;
                 int novoSalario = p.state.GetSalary() + aumento;
                 p.state.SetBaseSalary(novoSalario);
-                ui.Dialogue(titulo, $"Mesada aumentada em {aumento} Moedas/turno!", true);
+                ui.Dialogue(titulo, $"Aumento por Mérito!\nSalário aumentado em +{aumento} Moedas/turno!", true);
                 break;
 
             case "GanharMoedasDinheiro":
@@ -98,7 +97,7 @@ public class BlueSpace : BoardSpace {
                     Instantiate(coinPrefab, transform.position + Vector3.up * 5, Quaternion.Euler(0, Random.Range(0, 360), 0));
                     yield return new WaitForSeconds(0.1f);
                 }
-                ui.Dialogue(titulo, $"+{moedas + dinheiro} Moedas!", true);
+                ui.Dialogue(titulo, $"Bônus de Desempenho: +{moedas + dinheiro} Moedas!", true);
                 break;
 
             case "GanharDinheiro":
@@ -107,21 +106,20 @@ public class BlueSpace : BoardSpace {
                 p.state.changeCoins(Mathf.Max(1, bonusDinheiro));
 
                 string motivo = categoria switch {
-                    0 => "Bom comportamento",
-                    1 => "Notas boas",
-                    2 => "Ajudou alguém",
-                    _ => "Encontrou no chão"
+                    0 => "Hora extra remunerada",
+                    1 => "Meta trimestral superada",
+                    2 => "Projeto em destaque",
+                    _ => "Participação nos Lucros (PLR)"
                 };
-                ui.Dialogue(titulo, $"{motivo}: +{Mathf.Max(1, bonusDinheiro)} Moedas!", true);
+                ui.Dialogue(titulo, $"{motivo}:\n+{Mathf.Max(1, bonusDinheiro)} Moedas!", true);
                 break;
 
             case "Promocao":
-                // Bônus de reconhecimento profissional (sem promoção grátis)
-                // Promoções vêm exclusivamente da CareerTransitionSpace
-                int bonusReconhecimento = 20 + (nivelCarreira * 10);
+                // Bônus de reconhecimento profissional
+                int bonusReconhecimento = 25 + (nivelCarreira * 15);
                 p.state.changeCoins(bonusReconhecimento);
                 ui.Dialogue("Reconhecimento Profissional",
-                    $"Seu desempenho foi notado!\n+{bonusReconhecimento} Moedas de bônus!", true);
+                    $"Seu talento gerou resultados incríveis!\n+{bonusReconhecimento} Moedas de bonificação!", true);
                 break;
         }
 

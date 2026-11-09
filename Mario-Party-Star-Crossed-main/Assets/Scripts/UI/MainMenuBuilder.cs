@@ -35,10 +35,10 @@ public class MainMenuBuilder : MonoBehaviour {
     private Color corTituloDourado = new Color(0.98f, 0.75f, 0.14f, 1f);   // #fbbf24
 
     // =================== CONFIGURAÇÕES ===================
-    private float larguraBotao = 400f;
-    private float alturaBotao = 80f;
-    private float espacoEntreBotoes = 26f;
-    private int tamFonteBotao = 38;
+    private float larguraBotao = 420f;
+    private float alturaBotao = 70f;
+    private float espacoEntreBotoes = 18f;
+    private int tamFonteBotao = 34;
     private int tamFonteTitulo = 90;
     private int tamFonteDestaque = 120;
 
@@ -49,6 +49,8 @@ public class MainMenuBuilder : MonoBehaviour {
     private Font fonteFredoka;
     private RectTransform tituloRT;
     private TutorialManager tutorial;
+    private LocalLobbyUI localLobby;
+    private OnlineMenuUI onlineMenu;
 
     void Start() {
         fonteFredoka = Resources.Load<Font>("font/Fredoka-VariableFont_wdth,wght");
@@ -57,12 +59,20 @@ public class MainMenuBuilder : MonoBehaviour {
         CriarCanvas();
         CriarFundo();
         CriarPadraoFundo();
+        CriarSafeArea();
         CriarTitulo();
         CriarBotoes();
         StartCoroutine(AnimarTitulo());
 
         // Tutorial: criar instância (abre via botão "Como Jogar")
         tutorial = gameObject.AddComponent<TutorialManager>();
+
+        // Lobby Local e Menu Online
+        localLobby = gameObject.AddComponent<LocalLobbyUI>();
+        localLobby.Inicializar(this, safeAreaTransform != null ? safeAreaTransform : canvas.transform);
+
+        onlineMenu = gameObject.AddComponent<OnlineMenuUI>();
+        onlineMenu.Inicializar(safeAreaTransform != null ? safeAreaTransform : canvas.transform);
     }
 
     // =================== EVENT SYSTEM ===================
@@ -90,7 +100,10 @@ public class MainMenuBuilder : MonoBehaviour {
 
         // Inicializa gerenciador de configurações mobile (orientação paisagem, 60 FPS)
         MobileInputManager.EnsureExists();
+    }
 
+    // =================== SAFE AREA ===================
+    private void CriarSafeArea() {
         // Cria painel de Safe Area para proteger botões e títulos de entalhes (notches)
         GameObject safeAreaObj = new GameObject("SafeArea");
         safeAreaObj.transform.SetParent(canvas.transform, false);
@@ -100,6 +113,7 @@ public class MainMenuBuilder : MonoBehaviour {
         safeRT.offsetMin = Vector2.zero;
         safeRT.offsetMax = Vector2.zero;
         safeAreaObj.AddComponent<SafeAreaFitter>();
+        safeAreaObj.transform.SetAsLastSibling();
         safeAreaTransform = safeAreaObj.transform;
     }
 
@@ -107,6 +121,7 @@ public class MainMenuBuilder : MonoBehaviour {
     private void CriarFundo() {
         // Fundo sólido verde escuro (base)
         GameObject bg = CriarPainel("Fundo", canvas.transform, Color.clear);
+        bg.transform.SetAsFirstSibling();
         RectTransform bgRT = bg.GetComponent<RectTransform>();
         ExpandirParaTela(bgRT);
 
@@ -121,6 +136,7 @@ public class MainMenuBuilder : MonoBehaviour {
     // =================== PADRÃO DE BOLINHAS ===================
     private void CriarPadraoFundo() {
         GameObject dots = CriarPainel("PadraoFundo", canvas.transform, new Color(1, 1, 1, 0.06f));
+        dots.transform.SetSiblingIndex(1);
         ExpandirParaTela(dots.GetComponent<RectTransform>());
     }
 
@@ -157,13 +173,17 @@ public class MainMenuBuilder : MonoBehaviour {
         RectTransform containerRT = container.AddComponent<RectTransform>();
         containerRT.anchorMin = new Vector2(0.5f, 0.35f);
         containerRT.anchorMax = new Vector2(0.5f, 0.35f);
-        containerRT.sizeDelta = new Vector2(larguraBotao, 400);
+        containerRT.sizeDelta = new Vector2(larguraBotao, 480);
         containerRT.anchoredPosition = Vector2.zero;
 
         float yOffset = 0;
 
-        // Botão Jogar (Novo Jogo)
-        CriarBotaoMenu(container.transform, "Jogar", yOffset, false, () => NovoJogo());
+        // Botão Jogar Local (Abre Lobby de Configuração de Jogadores)
+        CriarBotaoMenu(container.transform, "Jogar Local", yOffset, false, () => AbrirLobbyLocal());
+        yOffset -= (alturaBotao + espacoEntreBotoes);
+
+        // Botão Multiplayer Online
+        CriarBotaoMenu(container.transform, "Multiplayer Online", yOffset, false, () => AbrirMenuOnline());
         yOffset -= (alturaBotao + espacoEntreBotoes);
 
         // Botão Continuar
@@ -172,8 +192,7 @@ public class MainMenuBuilder : MonoBehaviour {
         yOffset -= (alturaBotao + espacoEntreBotoes);
 
         // Verificar se existe save
-        string savePath = Application.dataPath + "/Data/mario_party_save.dat";
-        bool temSave = File.Exists(savePath);
+        bool temSave = GameState.HasSaveGame();
         btnContinuar.interactable = temSave;
         if (!temSave) {
             // Deixar visualmente desabilitado
@@ -192,6 +211,22 @@ public class MainMenuBuilder : MonoBehaviour {
 
         // Botão Sair
         CriarBotaoMenu(container.transform, "Sair", yOffset, true, () => SairJogo());
+    }
+
+    private void AbrirLobbyLocal() {
+        if (onlineMenu != null) onlineMenu.Ocultar();
+        if (localLobby != null) {
+            localLobby.Mostrar();
+        } else {
+            NovoJogo();
+        }
+    }
+
+    private void AbrirMenuOnline() {
+        if (localLobby != null) localLobby.Ocultar();
+        if (onlineMenu != null) {
+            onlineMenu.Mostrar();
+        }
     }
 
     // =================== FACTORY DE BOTÃO ===================
@@ -269,17 +304,15 @@ public class MainMenuBuilder : MonoBehaviour {
     // =================== AÇÕES DOS BOTÕES ===================
     private void NovoJogo() {
         // Limpar save existente
-        string savePath = Application.dataPath + "/Data/mario_party_save.dat";
-        if (File.Exists(savePath)) {
-            File.Delete(savePath);
-        }
+        GameState.DeleteSaveGame();
         PlayerPrefs.SetInt("LoadSavedGame", 0);
-        SceneManager.LoadScene("MVP");
+        GameMatchConfig.LoadFromPrefs();
+        SceneManager.LoadScene(GameMatchConfig.SelectedMapScene);
     }
 
     private void ContinuarJogo() {
         PlayerPrefs.SetInt("LoadSavedGame", 1);
-        SceneManager.LoadScene("MVP");
+        SceneManager.LoadScene(GameState.GetSavedMapScene());
     }
 
     private void SairJogo() {

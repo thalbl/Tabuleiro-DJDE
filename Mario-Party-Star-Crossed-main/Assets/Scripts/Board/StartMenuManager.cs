@@ -7,36 +7,31 @@ public class StartMenuManager : MonoBehaviour {
     public Button continueButton;
 
     void Start() {
-        // Verifica se existe um save para habilitar o botão Continuar
-        continueButton.interactable = File.Exists(GetSavePath());
+        if (continueButton != null) {
+            continueButton.interactable = GameState.HasSaveGame();
+        }
     }
 
     public void NewGame() {
-        // Remove save existente se houver
-        string savePath = GetSavePath();
-        if (File.Exists(savePath)) {
-            File.Delete(savePath);
-        }
-
-        // Seta flag para novo jogo
+        GameState.DeleteSaveGame();
         PlayerPrefs.SetInt("LoadSavedGame", 0);
-        SceneManager.LoadScene("MVP"); // Nome da sua cena do tabuleiro
+        GameMatchConfig.LoadFromPrefs();
+        SceneManager.LoadScene(GameMatchConfig.SelectedMapScene);
     }
 
     public void ContinueGame() {
-        // Seta flag para carregar jogo salvo
         PlayerPrefs.SetInt("LoadSavedGame", 1);
-        SceneManager.LoadScene("MVP");
+        SceneManager.LoadScene(GameState.GetSavedMapScene());
     }
 
     public void QuitGame() {
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #endif
-    Application.Quit();
+        Application.Quit();
     }
 
     private string GetSavePath() {
-        return Application.persistentDataPath + "/mario_party_save.dat";
+        return GameState.SaveFilePath;
     }
 }
