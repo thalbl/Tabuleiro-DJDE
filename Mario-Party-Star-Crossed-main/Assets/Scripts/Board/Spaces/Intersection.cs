@@ -96,8 +96,14 @@ public class Intersection : BoardSpace {
             phantom.enabled = true;
             phantomAlt.enabled = true;
 
-            // Faz uma pergunta ao jogador para determinar o caminho
-            yield return StartCoroutine(FazerPergunta());
+            int ctrl = p.state.getController();
+            if ((ctrl == 1 || ctrl == 2) && p.brain != null) {
+                // Bot decide pelo valor de cada rota (antes respondia a pergunta de perfil com a 1ª opção)
+                yield return StartCoroutine(AIPathChoice(p));
+            } else {
+                // Humano: pergunta de perfil determina o caminho
+                yield return StartCoroutine(FazerPergunta());
+            }
 
             // Define o próximo caminho com base na resposta
             if (goingAlt) {
@@ -129,7 +135,7 @@ public class Intersection : BoardSpace {
     // Restante do código permanece inalterado
     public IEnumerator AIPathChoice(Player p) {
         yield return new WaitForSeconds(1.0f);
-        goingAlt = p.brain.Prompt("Choose Path At Intersection", new List<string>() { "Next", "Option" }, p.GetCurrentRollCount()) == "Option";
+        goingAlt = p.brain.Prompt(Prompts.EscolhaCaminho, new List<string>() { "Next", "Option" }, p.GetCurrentRollCount()) == "Option";
         phantom.material = goingAlt ? inactiveMat : activeMat;
         phantomAlt.material = goingAlt ? activeMat : inactiveMat;
         AIMadeChoice = true;

@@ -13,9 +13,48 @@ public class EasyBrain : AIBrain {
         playerToTarget = "";
     }
 
+    // Chaves internas de avaliação -> item a usar
+    private static readonly Dictionary<string, BoardItem> ChaveParaItem = new Dictionary<string, BoardItem>() {
+        { "Golden Drink", BoardItem.GoldenDrink },
+        { "Vac Pack", BoardItem.VacPack },
+        { "Dueling Glove", BoardItem.DuelingGlove },
+        { "Magic Lamp", BoardItem.MagicLamp },
+        { "Wiggler Whistle", BoardItem.WigglerWhistle },
+        { "Chomp Call", BoardItem.ChompCall }
+    };
+
+    private string RivalMaisRico() {
+        PlayerState melhor = null;
+        foreach (PlayerState r in rivals) {
+            if (melhor == null || r.getCoins() > melhor.getCoins()) melhor = r;
+        }
+        return melhor != null ? melhor.charName() : "";
+    }
+
+    // Escolhe um alvo válido: o alvo planejado (se estiver nas opções) ou o rival mais rico; nunca "Cancelar".
+    private string EscolherAlvo(List<string> options) {
+        if (options == null || options.Count == 0) return Prompts.Cancelar;
+        if (!string.IsNullOrEmpty(playerToTarget) && options.Contains(playerToTarget)) {
+            string planejado = playerToTarget;
+            playerToTarget = "";
+            return planejado;
+        }
+        PlayerState melhor = null;
+        foreach (PlayerState r in rivals) {
+            if (options.Contains(r.charName()) && r.charName() != state.charName() && (melhor == null || r.getCoins() > melhor.getCoins())) {
+                melhor = r;
+            }
+        }
+        if (melhor != null) return melhor.charName();
+        foreach (string o in options) {
+            if (o != Prompts.Cancelar && o != state.charName()) return o;
+        }
+        return Prompts.Cancelar;
+    }
+
     public override string Prompt(string question, List<string> options, int spacesLeft) {
         switch (question) {
-            case "O que você fará?":
+            case Prompts.MenuTurno:
                 if (options.Contains("Usar Item") || state.getMovement() == 3) {
                     Dictionary<string, float> turnChoices = new Dictionary<string, float>();
                     float basicMovementValue = 0.0f;
@@ -159,6 +198,21 @@ public class EasyBrain : AIBrain {
                                     }
                                 }
                                 break;
+                            case BoardItem.MagicLamp:
+                                if (!turnChoices.ContainsKey("Magic Lamp")) {
+                                    turnChoices.Add("Magic Lamp", basicMovementValue + (state.getCoins() >= 20 ? 45 : -10));
+                                }
+                                break;
+                            case BoardItem.WigglerWhistle:
+                                if (!turnChoices.ContainsKey("Wiggler Whistle")) {
+                                    turnChoices.Add("Wiggler Whistle", basicMovementValue + 16);
+                                }
+                                break;
+                            case BoardItem.ChompCall:
+                                if (!turnChoices.ContainsKey("Chomp Call")) {
+                                    turnChoices.Add("Chomp Call", basicMovementValue + (rivals.Any(r => r.getCoins() > 0) ? 12 : -5));
+                                }
+                                break;
                             // Novos itens que antes eram stubs
                             case BoardItem.DoubleStarCard:
                                 if (!turnChoices.ContainsKey("Dia de Sorte")) {
@@ -223,6 +277,12 @@ public class EasyBrain : AIBrain {
                         playerToTarget = decision.Key.Substring(9);
                         itemToUse = BoardItem.PoisonMushroom;
                         return "Usar Item";
+                    } else if (ChaveParaItem.TryGetValue(decision.Key, out BoardItem itemMapeado)) {
+                        itemToUse = itemMapeado;
+                        if (itemMapeado == BoardItem.DuelingGlove) {
+                            playerToTarget = RivalMaisRico();
+                        }
+                        return "Usar Item";
                     } else if (decision.Key == "Dia de Sorte") {
                         itemToUse = BoardItem.DoubleStarCard;
                         return "Usar Item";
@@ -235,13 +295,14 @@ public class EasyBrain : AIBrain {
                     }
                 }
                 return "Rolar Dados";
-            case "Qual item você deseja usar?":
+            case Prompts.EscolhaItem:
                 return ItemSpace.itemNames[(int) itemToUse];
-            case "Em quem você quer aplicar a Dívida?":
-            case "Em quem você quer usar o Bilhete de Loteria?":
-            case "De quem você quer roubar um item?":
-                return playerToTarget;
-            case "Escolha o Caminho":
+            case Prompts.AlvoBuracoNoBolso:
+            case Prompts.AlvoVentania:
+            case Prompts.AlvoRouboItem:
+            case Prompts.AlvoDuelo:
+                return EscolherAlvo(options);
+            case Prompts.EscolhaCaminho:
                 int pNum = game.MyPlayerNumber(state);
                 Player pl;
                 if (pNum == 1) {
@@ -254,11 +315,12 @@ public class EasyBrain : AIBrain {
                     pl = game.p4;
                 }
                 Intersection fork = null;
-                foreach (GameObject i in GameObject.FindGameObjectsWithTag("Intersection")) {
+                foreach (Intersection i in Object.FindObjectsByType<Intersection>(FindObjectsSortMode.None)) {
                     if (fork == null || Vector3.Distance(i.transform.position, pl.transform.position) < Vector3.Distance(fork.transform.position, pl.transform.position)) {
-                        fork = i.GetComponent<Intersection>();
+                        fork = i;
                     }
                 }
+                if (fork == null) return "Next";
                 int nextValue;
                 int optionValue;
                 if (fork.gate == null || state.getItems().Contains(BoardItem.SkeletonKey) || state.getMovement() == 5) {
@@ -272,9 +334,10 @@ public class EasyBrain : AIBrain {
                     optionValue = -2147483648;
                 }
                 return (nextValue > optionValue) ? "Next" : "Option";
-            case "Escolha o Dado Mágico":
-                Debug.Log("Choosing to Roll " + numberToRoll);
-                return "" + numberToRoll;
+            case Prompts.DadoMagico:
+                int escolhido = numberToRoll > 0 ? numberToRoll : Random.Range(1, 11);
+                numberToRoll = 0;
+                return escolhido.ToString();
             default:
                 if (options != null && options.Count > 0) {
                     return options[0];

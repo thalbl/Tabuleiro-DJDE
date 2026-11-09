@@ -69,6 +69,11 @@ public class NetworkTurnManager : MonoBehaviour {
 
         // Gerenciamento de Timeout de Turno para partidas online ou com timer local ativo
         if (turnoAtivo) {
+            // Bots não têm limite de tempo (o timeout no turno do bot quebrava a rolagem de múltiplos dados)
+            if (JogadorAtivoPlayer != null && JogadorAtivoPlayer.state != null) {
+                int ctrl = JogadorAtivoPlayer.state.getController();
+                if (ctrl == 1 || ctrl == 2) return;
+            }
             timerTurnoAtual += Time.deltaTime;
             if (timerTurnoAtual >= timeoutTurnoSegundos) {
                 ExecutarTimeoutTurno();
@@ -223,14 +228,15 @@ public class NetworkTurnManager : MonoBehaviour {
         turnoAtivo = false;
         Debug.LogWarning($"[NetworkTurnManager] Tempo limite de {timeoutTurnoSegundos}s atingido para o Jogador {jogadorAtivoIndex + 1}! Assumindo por IA.");
 
+        // Responde o prompt atual em vez de substituí-lo por um novo diálogo
+        // (substituir deixava a corrotina da casa/turno esperando uma resposta que nunca vinha)
         if (uiManager != null) {
-            uiManager.Dialogue("Tempo Esgotado", $"O jogador demorou para responder. A jogada foi realizada automaticamente!", true);
+            uiManager.ResponderPorTimeout();
         }
 
-        // Se houver dado ativo, força a rolagem
-        DiceBlock dado = FindObjectOfType<DiceBlock>();
-        if (dado != null) {
-            dado.comTimer = 2.0f; // Força o disparo do dado
+        // Rola TODOS os dados ativos (dado duplo/triplo têm vários DiceBlock)
+        foreach (DiceBlock dado in FindObjectsByType<DiceBlock>(FindObjectsSortMode.None)) {
+            dado.ForcarRolagemPorTimeout();
         }
     }
 

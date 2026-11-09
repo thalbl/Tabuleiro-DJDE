@@ -42,7 +42,10 @@ public class DiceBlock : MonoBehaviour {
             } else {
                 comTimer = 0.0f;
                 if (magic) {
-                    aiMagicRoll = int.Parse(transform.parent.gameObject.GetComponent<Player>().brain.Prompt("Choose Magic Dice Roll", new List<string>(), 0));
+                    string resposta = transform.parent.gameObject.GetComponent<Player>().brain.Prompt(Prompts.DadoMagico, new List<string>(), 0);
+                    if (!int.TryParse(resposta, out aiMagicRoll) || aiMagicRoll < 1 || aiMagicRoll > maxRoll) {
+                        aiMagicRoll = Random.Range(1, maxRoll + 1);
+                    }
                 }
             }
         } else if (transform.parent.gameObject.GetComponent<DiceBlock>() != null) {
@@ -140,6 +143,15 @@ public class DiceBlock : MonoBehaviour {
 
         if (leader) {
             transform.parent.gameObject.GetComponent<Player>().SendRoll(currentRoll);
+            // Dados seguidores (dado duplo/triplo) são filhos do líder e morrem junto com ele em 1s.
+            // No turno do bot eles nunca disparavam sozinhos (o Player não é pai direto deles),
+            // então o turno travava esperando as rolagens que faltavam. O líder rola todos juntos.
+            foreach (Transform f in followers) {
+                if (f != null) {
+                    DiceBlock seguidor = f.GetComponent<DiceBlock>();
+                    if (seguidor != null) seguidor.TriggerRoll();
+                }
+            }
         } else {
             transform.parent.gameObject.GetComponent<DiceBlock>().PassAlongRoll(currentRoll);
         }
@@ -149,6 +161,11 @@ public class DiceBlock : MonoBehaviour {
     /// <summary>
     /// Força o dado a parar no valor recebido do adversário remoto via rede.
     /// </summary>
+    /// <summary>Rola agora (se ainda não rolou), como se o jogador tivesse tocado no dado.</summary>
+    public void ForcarRolagemPorTimeout() {
+        TriggerRoll();
+    }
+
     public void ForcarRolagemRemota(int roll) {
         currentRoll = Mathf.Clamp(roll, 1, maxRoll);
         TriggerRoll();

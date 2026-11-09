@@ -50,6 +50,7 @@ public class UIManager : MonoBehaviour {
     private List<string> spinnerChoices;
     private int spinnerLoc;
     private bool spinning;
+    private bool forcarAvancoPorTimeout;
     private int windDown;
     private int spinnerFrame;
     private Text yourTurnColor;
@@ -572,6 +573,10 @@ public class UIManager : MonoBehaviour {
             } else if (mostRecentPrompt == "Options") {
                 return !string.IsNullOrEmpty(mostRecentAns);
             } else {
+                if (forcarAvancoPorTimeout) {
+                    forcarAvancoPorTimeout = false;
+                    return true;
+                }
                 return Input.GetKeyDown(KeyCode.Space) || MobileInputManager.IsTouchOrClickDown();
             }
         } else if (controller == 5) {
@@ -596,11 +601,32 @@ public class UIManager : MonoBehaviour {
                     spinning = false;
                 }
                 if (mostRecentPrompt == "Options") {
-                    mostRecentAns = decisionAI.Prompt(targetText, choices, 0);
+                    // `choices` é guardada invertida para o layout dos botões; a IA recebe a ordem original
+                    // (antes recebia invertida e, sem regra específica, escolhia a ÚLTIMA opção:
+                    // "Não, obrigado" na Estrela, "Nao agora" na Universidade...)
+                    List<string> ordemOriginal = new List<string>(choices);
+                    ordemOriginal.Reverse();
+                    mostRecentAns = decisionAI.Prompt(targetText, ordemOriginal, 0);
                 }
                 return true;
             }
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Chamado quando o tempo do turno esgota: responde o prompt ATUAL sem substituí-lo
+    /// (substituir o diálogo corrompia a corrotina que estava esperando a resposta).
+    /// </summary>
+    public void ResponderPorTimeout() {
+        if (mostRecentPrompt == "Options") {
+            if (string.IsNullOrEmpty(mostRecentAns) && choices != null && choices.Count > 0) {
+                mostRecentAns = choices[choices.Count - 1]; // primeira opção na ordem original
+            }
+        } else if (mostRecentPrompt == "Spinner") {
+            spinning = false;
+        } else {
+            forcarAvancoPorTimeout = true;
         }
     }
 

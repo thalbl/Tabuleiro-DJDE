@@ -48,25 +48,25 @@ public class ItemSpace : BoardSpace {
 };
 
     public static List<string> itemDescriptions = new List<string>() {
-    "Avança 1 casa extra.",
-    "Avança 2 casas extras.",
-    "Avança 3 casas extras!",
-    "Jogador rival perde 4 passos de movimento.",
-    "Abre portões secretos e atalhos.",
+    "Rola 2 dados neste turno.",
+    "Rola 3 dados neste turno!",
+    "Você escolhe o número do dado (1 a 10)!",
+    "Um rival só rola de 1 a 3 no próximo turno.",
+    "Abre portões e atalhos enquanto estiver no bolso. Ou venda por +15 Moedas.",
     "Troca de lugar com outro jogador!",
     "Rouba um item de um rival.",
-    "Dá um bônus surpresa especial.",
-    "Ganha um item extra aleatório.",
+    "Bônus de produtividade: +10 Moedas (+3 por nível de carreira).",
+    "Troca a mochila por até 2 itens aleatórios.",
     "O Boo rouba moedas ou estrelas de um rival!",
     "Sopra um jogador para um lugar aleatório.",
-    "Desafia um rival para um duelo!",
-    "Chama o Chomp para uma missão especial.",
-    "Protege contra o roubo do Boo.",
-    "Te leva direto até a Estrela!",
-    "Cobra 20 Moedas de quem passar por você.",
+    "Duelo de dados com um rival: quem tirar mais leva até 15 Moedas.",
+    "Cobra até 5 Moedas de cada rival.",
+    "Protege contra o roubo do Boo enquanto estiver no bolso. Ou resgate por +20 Moedas.",
+    "Te leva direto até a Estrela para comprá-la!",
+    "Rola 5 dados de 1 a 3 e cobra 20 Moedas de quem você alcançar.",
     "Receba +30 Moedas na hora!",
     "Receba +25 Moedas de volta!",
-    "Chama um evento surpresa raro."
+    "Evento raro: +25 Moedas, aumento de salário ou item grátis."
     };
 
     public bool booItemsAllowed = true;

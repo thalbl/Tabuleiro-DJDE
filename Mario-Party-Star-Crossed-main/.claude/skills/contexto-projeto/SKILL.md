@@ -195,6 +195,13 @@ O enum mantém nomes originais; o texto exibido vem de `ItemSpace.itemNames[(int
 8. `BoardManager.Update` roda a colocação todo frame e cria componentes via `FindObjectOfType` (API obsoleta em Unity 6 → preferir `FindFirstObjectByType`).
 9. Texto legado em inglês com personagens Nintendo (Bowser, Boo, Boom Boom). Não introduzir mais conteúdo/nomes/arte de Mario: o objetivo é um jogo **original** de educação financeira; ao tocar nesses pontos, re-tematizar.
 10. Placar compara jogadores com `>` — empates dividem colocação.
+11. **IA ↔ jogo por texto**: `EasyBrain.Prompt` faz `switch` pelo texto da pergunta; sem match cai em `options[0]` (= 1ª opção na ordem original). **Use sempre as constantes de `Prompts` (`Board/AI/Prompts.cs`) nos dois lados** — nunca string literal. Alvos de item passam por `EasyBrain.EscolherAlvo` (nunca "Cancelar"/ele mesmo, salvo plano explícito). Bot decide bifurcação via `Intersection.AIPathChoice` (humano responde a pergunta de perfil).
+12. `UIManager` guarda `choices` **invertida** (layout dos botões) e reverte de volta antes de chamar a IA. Não passe `choices` direto para a IA.
+13. Dados múltiplos (Cofrinho/Super Dado/Fantasia): seguidores são filhos do dado líder e morrem com ele em 1s; o líder dispara os seguidores em `TriggerRoll`. Timer de turno (`NetworkTurnManager`, 45s, também local) **não conta em turno de bot** e, ao esgotar, chama `UIManager.ResponderPorTimeout()` (responde o prompt atual, nunca abre diálogo novo por cima).
+13b. Itens usados que dão dinheiro são **consumidos** (Chave Secreta, Escudo Protetor — antes geravam dinheiro infinito). Os efeitos de Bebida Dourada, Mochila, Luva de Duelo, Apito do Chomp, Lâmpada (passa pela Estrela via `passHere`) e Apito do Wiggler ficam em `Player.cs` (`Usar*`). "Ver Tabuleiro" = câmera temporária de cima (`Player.VerTabuleiro`).
+13c. Testar partida só com bots: fazer backup de `PlayerPrefs` (`Match_*`, `LoadSavedGame`) e do save em `persistentDataPath`, pôr os 4 controllers = 1, `editor_play`, `Time.timeScale = 4`. O Editor tem **Error Pause** ligado: erros de timeout do próprio CLI pausam o Play — despausar (`EditorApplication.isPaused = false`) a cada consulta. Restaurar prefs/save no fim.
+14. **Online dessincroniza**: rede é lockstep (só dado e escolhas trafegam), mas profissão, bônus, penalidades, quiz (`System.Random` sem seed), Ventania etc. usam RNG local sem seed compartilhada.
+15. Nome do jogo na UI: **"Caminho do Sucesso"** (`MainMenuBuilder`). `productName`/`companyName` ainda são os padrões da Unity.
 
 ---
 
