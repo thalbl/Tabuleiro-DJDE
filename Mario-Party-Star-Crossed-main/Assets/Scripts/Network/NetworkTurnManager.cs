@@ -67,14 +67,17 @@ public class NetworkTurnManager : MonoBehaviour {
     }
 
     void Update() {
+        AplicarDadosPendentes();
         if (!GameMatchConfig.IsOnlineMatch && !habilitarTimerLocal) return;
 
         // Gerenciamento de Timeout de Turno para partidas online ou com timer local ativo
         if (turnoAtivo && !TimerPausado) {
-            // Bots não têm limite de tempo (o timeout no turno do bot quebrava a rolagem de múltiplos dados)
+            // Só conta para humano LOCAL (ctrl 0). Bot não tem limite (quebrava dados múltiplos) e
+            // jogador remoto (ctrl 5) é cronometrado pela máquina dona, que transmite o que for escolhido;
+            // se cada máquina estourasse o tempo por conta própria, cada uma escolheria uma coisa.
             if (JogadorAtivoPlayer != null && JogadorAtivoPlayer.state != null) {
                 int ctrl = JogadorAtivoPlayer.state.getController();
-                if (ctrl == 1 || ctrl == 2) return;
+                if (ctrl != 0) return;
             }
             timerTurnoAtual += Time.deltaTime;
             if (timerTurnoAtual >= timeoutTurnoSegundos) {
@@ -101,6 +104,7 @@ public class NetworkTurnManager : MonoBehaviour {
         JogadorAtivoPlayer = player;
         timerTurnoAtual = 0f;
         turnoAtivo = true;
+        dadosPendentes.Clear();
 
         if (!GameMatchConfig.IsOnlineMatch) return;
 
@@ -135,12 +139,14 @@ public class NetworkTurnManager : MonoBehaviour {
     /// <summary>
     /// Notifica que o dado foi rolado pelo jogador ativo para sincronização.
     /// </summary>
-    public void NotificarDadoRolado(int valor) {
+    /// <param name="indiceDado">Posição do dado no conjunto (0 = líder, 1.. = seguidores do dado duplo/triplo).</param>
+    public void NotificarDadoRolado(int valor, int indiceDado = 0) {
         OnDadoSincronizado?.Invoke(jogadorAtivoIndex, valor);
 
         if (GameMatchConfig.IsOnlineMatch && NetworkTransportService.Instance != null) {
             NetworkProtocol.NetworkPacket packet = new NetworkProtocol.NetworkPacket(NetworkProtocol.MessageType.GameDiceRoll, ObterMeuSlot());
             packet.intPayload = valor;
+            packet.stringPayload = indiceDado.ToString();
             NetworkTransportService.Instance.EnviarPacote(packet);
         }
     }
@@ -169,7 +175,8 @@ public class NetworkTurnManager : MonoBehaviour {
             case NetworkProtocol.MessageType.GameDiceRoll:
                 if (packet.senderSlot != meuSlot) {
                     Debug.Log($"[NetworkTurnManager] Dado remoto recebido do Jogador {packet.senderSlot + 1}: {packet.intPayload}");
-                    ReceberAcaoRemota("dado", packet.intPayload.ToString());
+                    int.TryParse(packet.stringPayload, out int indiceDado);
+                    ReceberDadoRemoto(packet.intPayload, indiceDado);
                 }
                 break;
 
@@ -208,10 +215,7 @@ public class NetworkTurnManager : MonoBehaviour {
     public void ReceberAcaoRemota(string tipo, string parametro) {
         if (tipo == "dado") {
             if (int.TryParse(parametro, out int roll)) {
-                DiceBlock dado = FindObjectOfType<DiceBlock>();
-                if (dado != null) {
-                    dado.ForcarRolagemRemota(roll);
-                }
+                ReceberDadoRemoto(roll, 0);
             }
         } else if (tipo == "opcao") {
             if (uiManager != null) {
@@ -219,6 +223,32 @@ public class NetworkTurnManager : MonoBehaviour {
             }
         }
     }
+
+    // ================== DADOS REMOTOS ==================
+    // Cada valor vem com o índice do dado no conjunto do jogador ativo. O valor pode chegar ANTES de a
+    // máquina local instanciar os dados (o pacote "Rolar Dados" e os valores chegam quase juntos),
+    // então fica numa fila até o dado certo existir e estar pronto.
+    private readonly List<(int indice, int valor)> dadosPendentes = new List<(int, int)>();
+
+    public void ReceberDadoRemoto(int valor, int indiceDado) {
+        dadosPendentes.Add((indiceDado, valor));
+        AplicarDadosPendentes();
+    }
+
+    private void AplicarDadosPendentes() {
+        if (dadosPendentes.Count == 0 || JogadorAtivoPlayer == null) return;
+        DiceBlock[] conjunto = JogadorAtivoPlayer.GetComponentsInChildren<DiceBlock>(true);
+        for (int i = dadosPendentes.Count - 1; i >= 0; i--) {
+            var (indice, valor) = dadosPendentes[i];
+            if (indice < 0 || indice >= conjunto.Length) continue;
+            DiceBlock dado = conjunto[indice];
+            if (dado == null || !dado.Pronto) continue;
+            if (!dado.JaRolou) dado.ForcarRolagemRemota(valor);
+            dadosPendentes.RemoveAt(i);
+        }
+    }
+
+    public int DadosPendentes => dadosPendentes.Count;
 
     /// <summary>
     /// Notifica o término do turno atual.

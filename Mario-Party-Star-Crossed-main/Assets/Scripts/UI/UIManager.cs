@@ -626,6 +626,8 @@ public class UIManager : MonoBehaviour {
         if (mostRecentPrompt == "Options") {
             if (string.IsNullOrEmpty(mostRecentAns) && choices != null && choices.Count > 0) {
                 mostRecentAns = choices[choices.Count - 1]; // primeira opção na ordem original
+                // Online: as outras máquinas precisam receber a escolha feita pelo tempo esgotado
+                NetworkTurnManager.Instance?.NotificarOpcaoEscolhida(mostRecentAns);
             }
         } else if (mostRecentPrompt == "Spinner") {
             spinning = false;

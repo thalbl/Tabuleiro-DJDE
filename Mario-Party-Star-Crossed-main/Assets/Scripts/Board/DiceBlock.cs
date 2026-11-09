@@ -129,41 +129,83 @@ public class DiceBlock : MonoBehaviour {
         }
     }
 
+    /// <summary>Já foi inicializado (Start rodou) e pode receber um valor.</summary>
+    public bool Pronto => maxRoll > 0;
+    /// <summary>Já rolou (não aceita outra rolagem).</summary>
+    public bool JaRolou => comTimer <= -90.0f;
+
+    private int ControllerDoDono() {
+        Player dono = GetComponentInParent<Player>(true);
+        return (dono != null && dono.state != null) ? dono.state.getController() : 0;
+    }
+
+    /// <summary>
+    /// Posição deste dado no conjunto do jogador (0 = líder, 1.. = seguidores na ordem da hierarquia).
+    /// A hierarquia vem do prefab, então é a mesma em todas as máquinas.
+    /// </summary>
+    public int IndiceNoConjunto() {
+        Player dono = GetComponentInParent<Player>(true);
+        if (dono == null) return 0;
+        DiceBlock[] conjunto = dono.GetComponentsInChildren<DiceBlock>(true);
+        return System.Array.IndexOf(conjunto, this);
+    }
+
     private void TriggerRoll() {
-        if (comTimer <= -90.0f) return; // Já rolou este dado
+        if (JaRolou) return;
         HapticFeedback.VibrateDiceRoll();
         comTimer = -99.9f;
+
+        int ctrl = ControllerDoDono();
+        bool dadoRemoto = ctrl == 5; // valor vem pela rede (ForcarRolagemRemota), nunca do quadro local
+
         // Dado de bot (não mágico): valor sai do GameRng em vez do quadro em que disparou,
         // para todas as máquinas do online chegarem ao mesmo resultado
-        if (!magic) {
-            Player dono = GetComponentInParent<Player>();
-            if (dono != null && dono.state != null && (dono.state.getController() == 1 || dono.state.getController() == 2)) {
-                currentRoll = GameRng.Range(1, maxRoll + 1);
-            }
+        if (!magic && (ctrl == 1 || ctrl == 2)) {
+            currentRoll = GameRng.Range(1, maxRoll + 1);
         }
         if (rend != null) rend.enabled = false;
         foreach (ParticleSystem part in particles) {
             if (part != null) part.Play();
         }
 
-        // Notifica sincronização de rede
-        NetworkTurnManager.Instance?.NotificarDadoRolado(currentRoll);
+        // Só a máquina do humano dono do dado transmite o valor (bots são calculados em todas as máquinas)
+        if (ctrl == 0) {
+            NetworkTurnManager.Instance?.NotificarDadoRolado(currentRoll, IndiceNoConjunto());
+        }
 
         if (leader) {
             transform.parent.gameObject.GetComponent<Player>().SendRoll(currentRoll);
-            // Dados seguidores (dado duplo/triplo) são filhos do líder e morrem junto com ele em 1s.
+            // Dados seguidores (dado duplo/triplo) são filhos do líder e morrem junto com ele.
             // No turno do bot eles nunca disparavam sozinhos (o Player não é pai direto deles),
-            // então o turno travava esperando as rolagens que faltavam. O líder rola todos juntos.
-            foreach (Transform f in followers) {
-                if (f != null) {
-                    DiceBlock seguidor = f.GetComponent<DiceBlock>();
-                    if (seguidor != null) seguidor.TriggerRoll();
+            // então o líder rola todos juntos. Dado remoto NÃO: cada seguidor espera o próprio valor da rede.
+            if (!dadoRemoto) {
+                foreach (Transform f in followers) {
+                    if (f != null) {
+                        DiceBlock seguidor = f.GetComponent<DiceBlock>();
+                        if (seguidor != null) seguidor.TriggerRoll();
+                    }
                 }
             }
+            // O líder só some quando todos os seguidores rolaram (no remoto os valores chegam aos poucos)
+            StartCoroutine(DestruirQuandoConjuntoRolar());
         } else {
             transform.parent.gameObject.GetComponent<DiceBlock>().PassAlongRoll(currentRoll);
+            // Seguidor não se destrói sozinho: o líder destrói o conjunto quando todos rolaram
         }
-        Destroy(gameObject, 1.0f);
+    }
+
+    private IEnumerator DestruirQuandoConjuntoRolar() {
+        float limite = Time.time + 30f;
+        while (Time.time < limite) {
+            bool todos = true;
+            foreach (Transform f in followers) {
+                if (f != null && !f.GetComponent<DiceBlock>().JaRolou) { todos = false; break; }
+            }
+            if (todos) break;
+            yield return null;
+        }
+        yield return new WaitForSeconds(1.0f);
+        Destroy(gameObject);
     }
 
     /// <summary>
@@ -174,7 +216,9 @@ public class DiceBlock : MonoBehaviour {
         TriggerRoll();
     }
 
+    /// <summary>Faz ESTE dado parar no valor recebido do dono remoto (não rola os seguidores).</summary>
     public void ForcarRolagemRemota(int roll) {
+        if (JaRolou || !Pronto) return;
         currentRoll = Mathf.Clamp(roll, 1, maxRoll);
         TriggerRoll();
     }
