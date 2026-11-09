@@ -206,13 +206,13 @@ O enum mantém nomes originais; o texto exibido vem de `ItemSpace.itemNames[(int
 - 1 luz direcional, skybox procedural padrão, **ambiente Trilight** (MVP e MapaRapido) — o modo Skybox deixava as sombras pretas sem "Generate Lighting". Sem bake, sem probes, sem fog.
 - **Nenhum shader customizado**: materiais `Standard` → `URP/Lit` (122), `Legacy/Mobile Diffuse` → `URP/Simple Lit` (99), `Sparkle.mat` → `URP/Particles/Unlit` (cutout). TMP, `GUI/Text Shader` e skybox ficaram como estão (funcionam em URP).
 - Script de migração idempotente: `Assets/Scripts/Editor/URPMigration.cs` (`URPMigration.Report()` mostra o estado; dá para apagar quando não for mais útil).
-- **Sem pós-processamento ainda** (renderer já suporta; falta Volume + perfil).
+- **Pós-processamento**: `Global Volume` (layer Default) em MVP e MapaRapido com `Assets/Settings/URP/PostFX_Tabuleiro.asset` — Tonemapping Neutral, Color Adjustments (exposure +0.15, contraste 12, saturação 18), Bloom (threshold 1, intensidade 0.6), Vignette 0.22. Câmera do prefab `Player` com `renderPostProcessing = true` (instâncias herdam). Em `URP_Low` (sem HDR) o tonemapping/bloom praticamente não atuam. Setup idempotente: `URPPostProcessing.CreateProfile()` / `SetupScene(path)` / `SetupPlayerPrefab()`.
 - Cenário de asset packs low-poly em `Assets/Thirdparty` (Buildings, European Buildings, Low Poly Pack, Palmov Island, Park, CubexCube, Decorations). Tabuleiro: `Models/Paws/Tabletop.fbx` + prefabs em `Resources/Prefabs/Stages/MVP`.
 - Sem pós-processamento, sem tweening (movimento via `Vector3.MoveTowards`), quase nenhum áudio (`coin.ogg`, `powerup.ogg`, `tempMusic.ogg`).
 - Qualidade: perfis Very Low → Ultra; AA desligado até High.
 
 **Caminhos de melhoria (ordem sugerida)**
-1. ~~Migrar para URP~~ e ~~Linear~~ — feito. Próximo: **Volume global de pós** (bloom, tonemapping ACES/Neutral, color adjustments, vignette — skill `unity:urp-postprocessing`) e ativar `renderPostProcessing` nas câmeras dos jogadores.
+1. ~~Migrar para URP~~, ~~Linear~~ e ~~Volume global de pós~~ — feito. Ajuste fino de valores no perfil `PostFX_Tabuleiro` conforme gosto.
 2. Revisar cores de UI/HUD em Linear (podem ter ficado um pouco mais claras).
 3. **Estilo toon/low-poly coeso**: Shader Graph com ramp/cel shading + rim light + outline (inverted hull ou renderer feature) para unificar asset packs diferentes; casas com emissão por tipo (azul bonificação, vermelho penalidade, roxo quiz, dourado estrela) e pulso ao pousar.
 4. **Iluminação**: bake de lightmaps + light probes para o cenário estático; 1 direcional realtime para sombras dos peões; reflection probe único.

@@ -273,3 +273,101 @@ public static class URPMigrationLighting {
         return $"{scenePath}: mode={RenderSettings.ambientMode} probeUp={c[0]}";
     }
 }
+
+public static class URPPostProcessing {
+    const string ProfilePath = "Assets/Settings/URP/PostFX_Tabuleiro.asset";
+
+    // Perfil "Stylized/Mobile": cores vivas sem efeitos caros (sem DOF, grain, motion blur)
+    public static string CreateProfile() {
+        var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(ProfilePath);
+        if (profile == null) {
+            profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            AssetDatabase.CreateAsset(profile, ProfilePath);
+        }
+
+        var tone = Override<Tonemapping>(profile);
+        tone.mode.Override(TonemappingMode.Neutral);
+
+        var color = Override<ColorAdjustments>(profile);
+        color.postExposure.Override(0.15f);
+        color.contrast.Override(12f);
+        color.saturation.Override(18f);
+
+        var bloom = Override<Bloom>(profile);
+        bloom.threshold.Override(1.0f);
+        bloom.intensity.Override(0.6f);
+        bloom.scatter.Override(0.65f);
+        bloom.highQualityFiltering.Override(false);
+
+        var vignette = Override<Vignette>(profile);
+        vignette.intensity.Override(0.22f);
+        vignette.smoothness.Override(0.45f);
+
+        EditorUtility.SetDirty(profile);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.ImportAsset(ProfilePath);
+
+        var reloaded = AssetDatabase.LoadAssetAtPath<VolumeProfile>(ProfilePath);
+        var names = new List<string>();
+        foreach (var c in reloaded.components) names.Add(c == null ? "NULL" : c.GetType().Name);
+        return $"{ProfilePath}: [{string.Join(", ", names)}]";
+    }
+
+    static T Override<T>(VolumeProfile profile) where T : VolumeComponent {
+        if (profile.TryGet<T>(out var existing) && existing != null) return existing;
+        var comp = profile.Add<T>(false);
+        comp.name = typeof(T).Name;
+        AssetDatabase.AddObjectToAsset(comp, profile);
+        EditorUtility.SetDirty(comp);
+        return comp;
+    }
+
+    // Volume global na cena + liga pós na câmera de cada jogador (prefab + instâncias)
+    public static string SetupScene(string scenePath) {
+        var scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(scenePath, UnityEditor.SceneManagement.OpenSceneMode.Single);
+        // Carregar DEPOIS de abrir a cena: a troca de cena descarrega assets soltos
+        var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(ProfilePath);
+
+        Volume volume = null;
+        foreach (var v in Object.FindObjectsByType<Volume>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            if (v.gameObject.name == "Global Volume") volume = v;
+        if (volume == null) {
+            var go = new GameObject("Global Volume");
+            go.layer = 0;
+            volume = go.AddComponent<Volume>();
+        }
+        volume.isGlobal = true;
+        volume.priority = 0;
+        volume.weight = 1f;
+        volume.sharedProfile = profile;
+        EditorUtility.SetDirty(volume);
+
+        int cams = 0;
+        foreach (var cam in Object.FindObjectsByType<Camera>(FindObjectsInactive.Include, FindObjectsSortMode.None)) {
+            var data = cam.GetComponent<UniversalAdditionalCameraData>() ?? cam.gameObject.AddComponent<UniversalAdditionalCameraData>();
+            data.renderPostProcessing = true;
+            data.antialiasing = AntialiasingMode.None; // MSAA já vem do asset
+            data.volumeLayerMask |= 1 << volume.gameObject.layer;
+            EditorUtility.SetDirty(data);
+            cams++;
+        }
+
+        UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
+        UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
+        return $"{scenePath}: volume={volume.name} profile={(volume.sharedProfile != null ? volume.sharedProfile.name : "NULL")} cameras={cams}";
+    }
+
+    public static string SetupPlayerPrefab() {
+        const string path = "Assets/Prefabs/Board/Player.prefab";
+        var root = PrefabUtility.LoadPrefabContents(path);
+        int n = 0;
+        foreach (var cam in root.GetComponentsInChildren<Camera>(true)) {
+            var data = cam.GetComponent<UniversalAdditionalCameraData>() ?? cam.gameObject.AddComponent<UniversalAdditionalCameraData>();
+            data.renderPostProcessing = true;
+            n++;
+        }
+        PrefabUtility.SaveAsPrefabAsset(root, path);
+        PrefabUtility.UnloadPrefabContents(root);
+        return $"{path}: {n} câmera(s)";
+    }
+}
