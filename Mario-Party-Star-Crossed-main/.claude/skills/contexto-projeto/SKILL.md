@@ -16,8 +16,8 @@ Fork de um fangame de Mario Party ("Star Crossed") cujos conceitos foram **re-te
 | Item | Valor |
 |---|---|
 | Engine | Unity **6000.3.9f1** (Unity 6.3) |
-| Render pipeline | **Built-in (BiRP)** — `m_CustomRenderPipeline: 0`, sem URP/HDRP |
-| Color space | **Gamma** (`m_ActiveColorSpace: 0`) |
+| Render pipeline | **URP 17.3** (migrado do Built-in em 2026-11-09, branch `feat/migracao-urp`) |
+| Color space | **Linear** |
 | UI | **uGUI** + TextMesh Pro; menus da StartScene são **construídos em código** (`MainMenuBuilder`, `LocalLobbyUI`, `OnlineMenuUI`, `TutorialManager`) |
 | Rede | TCP puro próprio (`System.Net.Sockets`, porta 7777) — **não** usa Netcode/NGO |
 | Pacotes notáveis | ProBuilder, Timeline, AI Navigation, `com.unity.pipeline` (Unity CLI) |
@@ -200,17 +200,20 @@ O enum mantém nomes originais; o texto exibido vem de `ItemSpace.itemNames[(int
 
 ## 9. Motor gráfico, shaders e visual
 
-**Estado atual**
-- Built-in RP, **Gamma**, câmera perspectiva FOV 60 **por jogador** (filha do prefab Player, habilitada só no turno), HDR on, MSAA on, rendering path padrão (Forward).
-- 1 luz direcional, skybox padrão, ambiente "Skybox", sem fog, lightmap baked habilitado mas sem bake relevante.
-- **Nenhum shader customizado**: ~120 materiais `Standard`, ~98 `Legacy Diffuse`, partícula `Sparkle.mat`. Dados com materiais por face (`Materials/Surface/Dice`).
+**Estado atual (pós-migração URP)**
+- **URP 17.3 + Linear**. Assets em `Assets/Settings/URP/`: `URP_Renderer` (Forward, com PostProcessData) e 3 tiers — `URP_Low` (Very Low/Low: sem HDR, sem sombra, sem MSAA), `URP_Medium` (Medium/High + Graphics default: HDR, MSAA 2x, sombra 1024/50m), `URP_High` (Very High/Ultra: MSAA 4x, sombra 2048/80m, 2 cascatas).
+- Câmera perspectiva FOV 60 **por jogador** (filha do prefab Player, habilitada só no turno).
+- 1 luz direcional, skybox procedural padrão, **ambiente Trilight** (MVP e MapaRapido) — o modo Skybox deixava as sombras pretas sem "Generate Lighting". Sem bake, sem probes, sem fog.
+- **Nenhum shader customizado**: materiais `Standard` → `URP/Lit` (122), `Legacy/Mobile Diffuse` → `URP/Simple Lit` (99), `Sparkle.mat` → `URP/Particles/Unlit` (cutout). TMP, `GUI/Text Shader` e skybox ficaram como estão (funcionam em URP).
+- Script de migração idempotente: `Assets/Scripts/Editor/URPMigration.cs` (`URPMigration.Report()` mostra o estado; dá para apagar quando não for mais útil).
+- **Sem pós-processamento ainda** (renderer já suporta; falta Volume + perfil).
 - Cenário de asset packs low-poly em `Assets/Thirdparty` (Buildings, European Buildings, Low Poly Pack, Palmov Island, Park, CubexCube, Decorations). Tabuleiro: `Models/Paws/Tabletop.fbx` + prefabs em `Resources/Prefabs/Stages/MVP`.
 - Sem pós-processamento, sem tweening (movimento via `Vector3.MoveTowards`), quase nenhum áudio (`coin.ogg`, `powerup.ogg`, `tempMusic.ogg`).
 - Qualidade: perfis Very Low → Ultra; AA desligado até High.
 
 **Caminhos de melhoria (ordem sugerida)**
-1. **Migrar para URP** (skill `unity:migrate-birp-to-urp`) — melhor perf em mobile, SRP Batcher, Shader Graph, Volume de pós (bloom, tonemapping, vignette — skill `unity:urp-postprocessing`). Converter materiais Standard/Legacy → URP Lit/Simple Lit; `Sparkle` → URP Particles.
-2. **Linear color space** (junto com a migração) para iluminação correta; revisar cores de UI depois.
+1. ~~Migrar para URP~~ e ~~Linear~~ — feito. Próximo: **Volume global de pós** (bloom, tonemapping ACES/Neutral, color adjustments, vignette — skill `unity:urp-postprocessing`) e ativar `renderPostProcessing` nas câmeras dos jogadores.
+2. Revisar cores de UI/HUD em Linear (podem ter ficado um pouco mais claras).
 3. **Estilo toon/low-poly coeso**: Shader Graph com ramp/cel shading + rim light + outline (inverted hull ou renderer feature) para unificar asset packs diferentes; casas com emissão por tipo (azul bonificação, vermelho penalidade, roxo quiz, dourado estrela) e pulso ao pousar.
 4. **Iluminação**: bake de lightmaps + light probes para o cenário estático; 1 direcional realtime para sombras dos peões; reflection probe único.
 5. **Juice**: tween de pulo casa-a-casa (curva parabólica em vez de `MoveTowards`), squash & stretch, partículas de moedas/estrela, câmera com follow suave/Cinemachine, shake leve em penalidades (skill `unity:craft-game-floors`).
