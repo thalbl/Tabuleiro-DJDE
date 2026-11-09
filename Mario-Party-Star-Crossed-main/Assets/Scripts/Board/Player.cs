@@ -550,7 +550,12 @@ public class Player : MonoBehaviour {
                     yield return new WaitUntil(() => targetSpace.doneLandingYet());
                     state.setSpace(targetSpace.id);
 
-
+                    // Promoção por experiência (casas percorridas) acontece durante o movimento; anuncia aqui
+                    if (state.ConsumirPromocoesExperiencia() > 0) {
+                        ui.Dialogue("Experiência de Mercado",
+                            $"{state.charName()} acumulou experiência e foi promovido(a)!\nAgora: {state.GetProfissao()} {state.GetCareerTitle()} (Nv. {state.GetCareerLevel()})", true);
+                        yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
+                    }
 
                     takingTurn = false;
                     myCam.enabled = false;

@@ -109,8 +109,13 @@ public class GameState {
     }
 
     public string getTurnText() {
-        return ((this.turnsCompleted > 8) ? "Turn " : "Turn 0") + (this.turnsCompleted + 1) + "/" + this.maxTurn;
+        return $"Rodada {this.turnsCompleted + 1}/{this.maxTurn}";
     }
+
+    // Save a cada turno: guarda de quem é a vez dentro da rodada (0..3) para retomar no jogador certo
+    [SerializeField] protected int proximoJogador;
+    public int GetProximoJogador() => proximoJogador;
+    public void SetProximoJogador(int i) => proximoJogador = Mathf.Clamp(i, 0, 3);
 
     public int getTurnEvent() {
         if (turnsCompleted == 0) return 1;

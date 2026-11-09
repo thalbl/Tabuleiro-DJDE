@@ -72,3 +72,7 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 Assets/.DS_Store
 .DS_Store
+
+# Save local do jogo (o jogo grava em Application.persistentDataPath; este caminho é legado do Editor)
+/[Aa]ssets/[Dd]ata/mario_party_save.dat
+/[Aa]ssets/[Dd]ata/mario_party_save.dat.meta

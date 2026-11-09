@@ -33,6 +33,15 @@ public abstract class BoardSpace : MonoBehaviour {
 
     public virtual void setup() {}
 
+    // Casas azul/vermelha na categoria 0 (carreira Nv. 1-3, onde passa a maior parte da partida)
+    // rendiam/custavam 7-20% do líquido de um turno, então cair nelas quase não fazia diferença.
+    // Da categoria 1 em diante os valores já ficam em ~40-80% de um turno e não mudam.
+    public const float FatorMoedasCategoriaInicial = 3f;
+
+    protected static int EscalarMoedasCasa(int valor, int categoria) {
+        return categoria == 0 ? Mathf.RoundToInt(valor * FatorMoedasCategoriaInicial) : valor;
+    }
+
     public void passHere(Player p) {
         StartCoroutine(pass(p));
     }

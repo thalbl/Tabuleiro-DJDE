@@ -29531,6 +29531,7 @@ MonoBehaviour:
     handicaps: 
     minigames: 
     turnsCompleted: 0
+    rngSeed: 0
     filename: 
     mostRecentFFAs: 
     mostRecent2v2s: 
@@ -29578,6 +29579,8 @@ MonoBehaviour:
       p3Grudge: 0
       p4Grudge: 0
       dinheiro: 0
+      casasDesdeUltimaExperiencia: 0
+      promocoesExperienciaPendentes: 0
     p2:
       controller: 0
       avatar: 0
@@ -29614,6 +29617,8 @@ MonoBehaviour:
       p3Grudge: 0
       p4Grudge: 0
       dinheiro: 0
+      casasDesdeUltimaExperiencia: 0
+      promocoesExperienciaPendentes: 0
     p3:
       controller: 0
       avatar: 0
@@ -29650,6 +29655,8 @@ MonoBehaviour:
       p3Grudge: 0
       p4Grudge: 0
       dinheiro: 0
+      casasDesdeUltimaExperiencia: 0
+      promocoesExperienciaPendentes: 0
     p4:
       controller: 0
       avatar: 0
@@ -29686,12 +29693,16 @@ MonoBehaviour:
       p3Grudge: 0
       p4Grudge: 0
       dinheiro: 0
+      casasDesdeUltimaExperiencia: 0
+      promocoesExperienciaPendentes: 0
+    proximoJogador: 0
   fileToLoad: savedgame_0
   p1: {fileID: 2880195953842845025}
   p2: {fileID: 972574987}
   p3: {fileID: 498725936}
   p4: {fileID: 923467843}
   gameOverSceneName: GameOverScene
+  metaCarreira: 5
 --- !u!4 &1545936448
 Transform:
   m_ObjectHideFlags: 0

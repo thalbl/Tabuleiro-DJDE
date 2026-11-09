@@ -202,10 +202,30 @@ public class PlayerState : ISerializationCallbackReceiver {
         }
     }
 
-    public void CompleteLap() {
-        lapsCompleted++;
-        if (lapsCompleted % 2 == 0 && careerLevel < CareerMultipliers.Length) {
-            Promote();
+    // ================== EXPERIÊNCIA DE MERCADO ==================
+    // A cada N casas percorridas o jogador é promovido por experiência. Antes era "a cada 2 voltas",
+    // mas os anéis têm tamanhos muito diferentes (16 a 60 casas no MVP) e a contagem dependia da rota:
+    // num anel grande levava ~18 rodadas por nível. Casas andadas é igual para qualquer rota.
+    public const int CasasPorPromocaoExperiencia = 30;
+
+    [SerializeField] private int casasDesdeUltimaExperiencia = 0;
+    [SerializeField] private int promocoesExperienciaPendentes = 0;
+
+    /// <summary>Promoções por experiência ganhas e ainda não anunciadas (zera ao ler).</summary>
+    public int ConsumirPromocoesExperiencia() {
+        int n = promocoesExperienciaPendentes;
+        promocoesExperienciaPendentes = 0;
+        return n;
+    }
+
+    private void ContarCasaParaExperiencia() {
+        casasDesdeUltimaExperiencia++;
+        if (casasDesdeUltimaExperiencia >= CasasPorPromocaoExperiencia) {
+            casasDesdeUltimaExperiencia = 0;
+            if (careerLevel < CareerMultipliers.Length) {
+                Promote();
+                promocoesExperienciaPendentes++;
+            }
         }
     }
 
@@ -399,7 +419,10 @@ public class PlayerState : ISerializationCallbackReceiver {
 
     public void UsedItemStatTrigger() => this.totalItemsUsed += 1;
 
-    public void MovedSpaceStatTrigger() => this.totalSpacesMoved += 1;
+    public void MovedSpaceStatTrigger() {
+        this.totalSpacesMoved += 1;
+        ContarCasaParaExperiencia();
+    }
 
     public void UnluckySpaceStatTrigger() => this.totalUnluckySpaces += 1;
 

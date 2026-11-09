@@ -20,7 +20,13 @@ public class BoardManager : MonoBehaviour {
 
     public string gameOverSceneName = "GameOverScene";
     private bool gameEnded = false;
-    private const int MAX_CAREER_LEVEL = 10; // N�vel m�ximo da carreira
+    [Tooltip("Nível de carreira que encerra a partida na hora (quem chegar primeiro vence). " +
+             "Ajuste por mapa: deve ser alcançável numa partida normal (o Nv. 10 nunca era).")]
+    [Range(2, 10)]
+    public int metaCarreira = 6;
+
+    private bool aberturaExibida = false;
+    private bool aguardandoAbertura = false;
 
     private UIManager ui;
     private bool processingEndPhase = false;
@@ -37,7 +43,10 @@ public class BoardManager : MonoBehaviour {
             state = loadedState;
             // Continua a sequência de forma reprodutível a partir da seed salva
             int seedSalva = state.GetSeed() != 0 ? state.GetSeed() : GameRng.NovaSeed();
-            GameRng.Init(seedSalva + state.getCurrentTurn() * 7919);
+            GameRng.Init(seedSalva + state.getCurrentTurn() * 7919 + state.GetProximoJogador() * 131);
+            // Save é feito a cada turno: retoma na vez do jogador seguinte (fases 1, 3, 5, 7)
+            phase = state.GetProximoJogador() * 2 + 1;
+            aberturaExibida = true;
         }
         else {
             // Cria novo jogo a partir das configurações definidas no Lobby
@@ -122,6 +131,12 @@ public class BoardManager : MonoBehaviour {
         // Fases do jogo
         switch (phase) {
             case 0:
+                if (!aberturaExibida && state.getCurrentTurn() == 0) {
+                    aberturaExibida = true;
+                    StartCoroutine(MostrarAbertura());
+                    break;
+                }
+                if (aguardandoAbertura) break;
                 // Evento no início do turno (sem despesas automáticas)
                 switch (state.getTurnEvent()) {
                     case 1: /* Opening Ceremony */ break;
@@ -140,6 +155,7 @@ public class BoardManager : MonoBehaviour {
             case 2:
                 if (p1.TurnOver()) {
                     NetworkTurnManager.Instance?.NotificarFimTurno(0);
+                    SalvarVezDe(1);
                     phase = 3;
                 }
                 break;
@@ -151,6 +167,7 @@ public class BoardManager : MonoBehaviour {
             case 4:
                 if (p2.TurnOver()) {
                     NetworkTurnManager.Instance?.NotificarFimTurno(1);
+                    SalvarVezDe(2);
                     phase = 5;
                 }
                 break;
@@ -162,6 +179,7 @@ public class BoardManager : MonoBehaviour {
             case 6:
                 if (p3.TurnOver()) {
                     NetworkTurnManager.Instance?.NotificarFimTurno(2);
+                    SalvarVezDe(3);
                     phase = 7;
                 }
                 break;
@@ -222,6 +240,7 @@ public class BoardManager : MonoBehaviour {
             ps.setTeam(0);
         }
         state.turnCompleted();
+        state.SetProximoJogador(0);
         NetworkTurnManager.Instance?.RegistrarFimDeRodada(state.getCurrentTurn(), state);
         state.SaveGame();
 
@@ -238,22 +257,64 @@ public class BoardManager : MonoBehaviour {
         }
     }
 
-    // Verifica se algum jogador atingiu o n�vel m�ximo da carreira
+    // Verifica se algum jogador atingiu a meta de carreira deste mapa
     private bool CheckCareerLevelComplete() {
         foreach (PlayerState player in players) {
-            if (player.GetCareerLevel() >= MAX_CAREER_LEVEL) {
+            if (AtingiuMeta(player)) {
                 return true;
             }
         }
         return false;
     }
 
+    private bool AtingiuMeta(PlayerState p) => p != null && p.GetCareerLevel() >= metaCarreira;
+
+    private void SalvarVezDe(int proximo) {
+        state.SetProximoJogador(proximo);
+        state.SaveGame();
+    }
+
+    private IEnumerator MostrarAbertura() {
+        aguardandoAbertura = true;
+        if (ui == null) ui = FindObjectOfType<UIManager>();
+        if (ui != null) {
+            // Dá a vez ao primeiro humano local para ele poder dispensar o aviso
+            Player humano = null;
+            foreach (Player pl in GetPlayers()) {
+                if (pl != null && pl.state != null && pl.state.getController() == 0) { humano = pl; break; }
+            }
+            if (humano != null) {
+                NetworkTurnManager.Instance?.NotificarInicioTurno(MyPlayerNumber(humano) - 1, humano);
+                ui.SetController(0);
+            }
+
+            // Nenhuma câmera fica ligada antes do 1º turno (cada jogador liga a sua na própria vez)
+            Camera cam = (humano != null ? humano : p1).GetComponentInChildren<Camera>(true);
+            bool ligouCamera = cam != null && !cam.enabled;
+            if (ligouCamera) cam.enabled = true;
+
+            string titulo = PlayerState.ObterTituloCarreira(metaCarreira);
+            // A caixa de diálogo comporta 2 linhas
+            ui.Dialogue("Objetivo da Partida",
+                $"Chegue ao Nv. {metaCarreira} de carreira ({titulo}) e vença na hora!\n" +
+                $"Se ninguém chegar, vence a maior pontuação após {state.getMaxTurns()} rodadas.", true);
+            yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
+            yield return new WaitForSeconds(0.1f);
+            if (ligouCamera) cam.enabled = false;
+        }
+        aguardandoAbertura = false;
+    }
+
     private void EndGame() {
         gameEnded = true;
 
         // Ordenar jogadores pela pontuação composta final
+        // Quem atingiu a meta de carreira vence (vem primeiro); o resto ordena pela pontuação
         List<PlayerState> rankedPlayers = new List<PlayerState>(players);
-        rankedPlayers.Sort((a, b) => b.GetFinalScore().CompareTo(a.GetFinalScore()));
+        rankedPlayers.Sort((a, b) => {
+            int meta = AtingiuMeta(b).CompareTo(AtingiuMeta(a));
+            return meta != 0 ? meta : b.GetFinalScore().CompareTo(a.GetFinalScore());
+        });
 
         // Determinar quantidade real de jogadores
         int activePlayers = 0;
@@ -275,7 +336,11 @@ public class BoardManager : MonoBehaviour {
                 PlayerPrefs.SetInt($"Player{position}EducationLevel", player.GetEducationLevel());
                 PlayerPrefs.SetInt($"Player{position}Stars", player.getStars());
                 PlayerPrefs.SetInt($"Player{position}FinalScore", player.GetFinalScore());
-                PlayerPrefs.SetString($"Player{position}ScoreBreakdown", player.GetScoreBreakdown());
+                string detalhe = player.GetScoreBreakdown();
+                if (AtingiuMeta(player)) {
+                    detalhe = $"META DE CARREIRA ALCANÇADA (Nv. {metaCarreira})!\n" + detalhe;
+                }
+                PlayerPrefs.SetString($"Player{position}ScoreBreakdown", detalhe);
             }
         }
 

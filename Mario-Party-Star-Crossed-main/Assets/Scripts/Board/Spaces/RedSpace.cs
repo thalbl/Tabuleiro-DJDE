@@ -86,7 +86,7 @@ public class RedSpace : BoardSpace {
 
             case "GastarDinheiro":
                 int gastoBase = valores[0];
-                int gasto = gastoBase * nivelCarreira;
+                int gasto = EscalarMoedasCasa(gastoBase * nivelCarreira, categoria);
                 p.state.changeCoins(-gasto);
 
                 string motivo = categoria switch {
@@ -100,7 +100,7 @@ public class RedSpace : BoardSpace {
 
             case "PerderMoedas":
                 int moedasPerdidasBase = valores[0];
-                int moedasPerdidas = Mathf.Min(moedasPerdidasBase + nivelCarreira, p.state.getCoins());
+                int moedasPerdidas = Mathf.Min(EscalarMoedasCasa(moedasPerdidasBase + nivelCarreira, categoria), p.state.getCoins());
                 p.state.changeCoins(-moedasPerdidas);
                 ui.Dialogue(titulo, $"Prejuízo imprevisto: -{moedasPerdidas} Moedas!", true);
                 break;
@@ -111,7 +111,7 @@ public class RedSpace : BoardSpace {
                     ui.Dialogue("Retrocesso Profissional", $"Devido a uma reestruturação, você foi rebaixado para {p.state.GetCareerTitle()}!", true);
                 }
                 else {
-                    int perdaAlternativa = 6 * nivelCarreira;
+                    int perdaAlternativa = EscalarMoedasCasa(6 * nivelCarreira, categoria);
                     p.state.changeCoins(-perdaAlternativa);
                     ui.Dialogue("Advertência Profissional", $"Falha em entrega importante: -{perdaAlternativa} Moedas de multa!", true);
                 }

@@ -91,18 +91,19 @@ public class BlueSpace : BoardSpace {
                 int moedas = moedasBase + nivelCarreira;
                 int dinheiro = Mathf.RoundToInt(dinheiroBase * nivelCarreira / 100f);
 
-                p.state.changeCoins(moedas + dinheiro);
+                int totalBonus = EscalarMoedasCasa(moedas + dinheiro, categoria);
+                p.state.changeCoins(totalBonus);
 
                 for (int i = 0; i < moedas; i++) {
                     Instantiate(coinPrefab, transform.position + Vector3.up * 5, Quaternion.Euler(0, Random.Range(0, 360), 0));
                     yield return new WaitForSeconds(0.1f);
                 }
-                ui.Dialogue(titulo, $"Bônus de Desempenho: +{moedas + dinheiro} Moedas!", true);
+                ui.Dialogue(titulo, $"Bônus de Desempenho: +{totalBonus} Moedas!", true);
                 break;
 
             case "GanharDinheiro":
                 int bonusDinheiroBase = valores[0];
-                int bonusDinheiro = Mathf.RoundToInt(bonusDinheiroBase * nivelCarreira / 100f);
+                int bonusDinheiro = EscalarMoedasCasa(Mathf.RoundToInt(bonusDinheiroBase * nivelCarreira / 100f), categoria);
                 p.state.changeCoins(Mathf.Max(1, bonusDinheiro));
 
                 string motivo = categoria switch {
