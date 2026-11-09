@@ -64,6 +64,15 @@ public class CareerTransitionSpace : BoardSpace {
         }
         else {
             nextByPlayer[p] = this.next;
+            // Passar pelo portão sem os requisitos = completou uma volta neste anel.
+            // A cada 2 voltas, CompleteLap() promove por experiência (antes nunca era chamado).
+            int nivelAntes = p.state.GetCareerLevel();
+            p.state.CompleteLap();
+            if (p.state.GetCareerLevel() > nivelAntes) {
+                ui.Dialogue("Experiência de Mercado",
+                    $"Depois de 2 voltas no circuito, {p.state.charName()} foi promovido(a) por experiência!\nAgora: {p.state.GetProfissao()} {p.state.GetCareerTitle()} (Nv. {p.state.GetCareerLevel()})", true);
+                yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
+            }
             ShowRequirementsMessage(p.state);
         }
 

@@ -51,6 +51,7 @@ public class UIManager : MonoBehaviour {
     private int spinnerLoc;
     private bool spinning;
     private bool forcarAvancoPorTimeout;
+    private int frameAvancoForcado = -1;
     private int windDown;
     private int spinnerFrame;
     private Text yourTurnColor;
@@ -573,10 +574,13 @@ public class UIManager : MonoBehaviour {
             } else if (mostRecentPrompt == "Options") {
                 return !string.IsNullOrEmpty(mostRecentAns);
             } else {
+                // Avanço forçado vale para TODOS que consultarem neste frame (igual a GetKeyDown);
+                // o próprio UIManager.Update também chama este método e consumiria um flag de uso único.
                 if (forcarAvancoPorTimeout) {
                     forcarAvancoPorTimeout = false;
-                    return true;
+                    frameAvancoForcado = Time.frameCount;
                 }
+                if (frameAvancoForcado == Time.frameCount) return true;
                 return Input.GetKeyDown(KeyCode.Space) || MobileInputManager.IsTouchOrClickDown();
             }
         } else if (controller == 5) {
@@ -596,7 +600,7 @@ public class UIManager : MonoBehaviour {
             // BOT (IA)
             if (comTime >= 1.0f) {
                 if (mostRecentPrompt == "Spinner") {
-                    spinnerLoc = Random.Range(1, 7);
+                    spinnerLoc = GameRng.Range(1, 7);
                     mostRecentAns = spinnerChoices[spinnerLoc];
                     spinning = false;
                 }

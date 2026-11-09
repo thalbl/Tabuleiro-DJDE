@@ -66,7 +66,7 @@ public class Intersection : BoardSpace {
         }
 
         // Seleciona uma pergunta aleatória
-        int indice = Random.Range(0, perguntasRespostas.Count);
+        int indice = GameRng.Range(0, perguntasRespostas.Count);
         var (pergunta, opcao1, opcao2) = perguntasRespostas[indice];
 
         // Exibe a pergunta ao jogador com duas opções

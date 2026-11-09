@@ -44,7 +44,7 @@ public class DiceBlock : MonoBehaviour {
                 if (magic) {
                     string resposta = transform.parent.gameObject.GetComponent<Player>().brain.Prompt(Prompts.DadoMagico, new List<string>(), 0);
                     if (!int.TryParse(resposta, out aiMagicRoll) || aiMagicRoll < 1 || aiMagicRoll > maxRoll) {
-                        aiMagicRoll = Random.Range(1, maxRoll + 1);
+                        aiMagicRoll = GameRng.Range(1, maxRoll + 1);
                     }
                 }
             }
@@ -133,6 +133,14 @@ public class DiceBlock : MonoBehaviour {
         if (comTimer <= -90.0f) return; // Já rolou este dado
         HapticFeedback.VibrateDiceRoll();
         comTimer = -99.9f;
+        // Dado de bot (não mágico): valor sai do GameRng em vez do quadro em que disparou,
+        // para todas as máquinas do online chegarem ao mesmo resultado
+        if (!magic) {
+            Player dono = GetComponentInParent<Player>();
+            if (dono != null && dono.state != null && (dono.state.getController() == 1 || dono.state.getController() == 2)) {
+                currentRoll = GameRng.Range(1, maxRoll + 1);
+            }
+        }
         if (rend != null) rend.enabled = false;
         foreach (ParticleSystem part in particles) {
             if (part != null) part.Play();

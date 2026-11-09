@@ -17,6 +17,11 @@ public class GameState {
     // VISIBLE GAME DATA
     [SerializeField] protected int turnsCompleted;
 
+    // Seed do GameRng da partida (mesma em todas as máquinas no online)
+    [SerializeField] protected int rngSeed;
+    public int GetSeed() => rngSeed;
+    public void SetSeed(int s) => rngSeed = s;
+
     // INTERNAL GAME DATA
     [SerializeField] private string filename;
     [SerializeField] protected List<int> mostRecentFFAs;
@@ -196,7 +201,7 @@ public abstract class ClassicStarGameState: GameState {
     public void NewStarPos(List<int> blocked) {
         List<int> possibleLocs = new List<int>(StarLocationIDs());
         possibleLocs.RemoveAll(i => blocked.Contains(i));
-        starLocation = possibleLocs[Random.Range(0, possibleLocs.Count - 1)];
+        starLocation = possibleLocs[GameRng.Range(0, possibleLocs.Count)];
     }
 
     public abstract List<int> StarLocationIDs();
@@ -308,9 +313,9 @@ public class TwistedTowersGameState: ClassicStarGameState {
     }
 
     public void randomizeMagicSpaces() {
-        int neo = magicSpaceOdds[Random.Range(0, magicSpaceOdds.Count - 1)];
+        int neo = magicSpaceOdds[GameRng.Range(0, magicSpaceOdds.Count)];
         if (neo == magicSpaces) {
-            neo += Random.Range(1, 4);
+            neo += GameRng.Range(1, 4);
             if (neo >= 6) {
                 neo -= 5;
             }
@@ -320,15 +325,15 @@ public class TwistedTowersGameState: ClassicStarGameState {
 
     public void shufflePortraits() {
         List<int> locsAvailable = new List<int>() {0, 1, 2, 3, 4};
-        this.graveyardPortraitTarget = locsAvailable[Random.Range(0, locsAvailable.Count - 1)];
+        this.graveyardPortraitTarget = locsAvailable[GameRng.Range(0, locsAvailable.Count)];
         locsAvailable.Remove(this.graveyardPortraitTarget);
-        this.startingPortraitTarget = locsAvailable[Random.Range(0, locsAvailable.Count - 1)];
+        this.startingPortraitTarget = locsAvailable[GameRng.Range(0, locsAvailable.Count)];
         locsAvailable.Remove(this.startingPortraitTarget);
-        this.midlevelPortraitTarget = locsAvailable[Random.Range(0, locsAvailable.Count - 1)];
+        this.midlevelPortraitTarget = locsAvailable[GameRng.Range(0, locsAvailable.Count)];
         locsAvailable.Remove(this.midlevelPortraitTarget);
-        this.roofPortraitTarget = locsAvailable[Random.Range(0, locsAvailable.Count - 1)];
+        this.roofPortraitTarget = locsAvailable[GameRng.Range(0, locsAvailable.Count)];
         locsAvailable.Remove(this.roofPortraitTarget);
-        this.kamekPortraitTarget = locsAvailable[Random.Range(0, locsAvailable.Count - 1)];
+        this.kamekPortraitTarget = locsAvailable[GameRng.Range(0, locsAvailable.Count)];
         locsAvailable.Remove(this.kamekPortraitTarget);
 
         if (this.graveyardPortraitTarget == 0) {
@@ -414,7 +419,7 @@ public class CreepyCavernGameState: ClassicStarGameState {
 
     public CreepyCavernGameState(PlayerState p1, PlayerState p2, PlayerState p3, PlayerState p4, int maxTurn, int bonusStars, bool halfwayThere, bool hiddenBlocksPresent, bool consolationCoins, List<int> handicaps, List<bool> minigames) : base(p1, p2, p3, p4, maxTurn, bonusStars, halfwayThere, hiddenBlocksPresent, consolationCoins, handicaps, minigames) {
         this.whompKingBlocksEast = true;
-        this.kingDesire = Random.Range(0, 3);
+        this.kingDesire = GameRng.Range(0, 3);
     }
 
     public override List<int> StarLocationIDs() {

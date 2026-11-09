@@ -64,7 +64,7 @@ public class BlueSpace : BoardSpace {
         }
 
         // Seleciona aleatoriamente baseado na categoria
-        int indice = Random.Range(0, bonificacoes.Count);
+        int indice = GameRng.Range(0, bonificacoes.Count);
         Dictionary<string, object> bonus = bonificacoes[indice];
         string tipo = (string)bonus["tipo"];
         List<int> valores = (List<int>)bonus["valores"];

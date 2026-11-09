@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
@@ -48,8 +48,9 @@ public class QuestionSpace : BoardSpace {
 
     // Método para embaralhar uma lista
     private List<T> EmbaralharLista<T>(List<T> lista) {
-        System.Random rng = new System.Random();
-        return lista.OrderBy(a => rng.Next()).ToList();
+        List<T> copia = new List<T>(lista);
+        GameRng.Embaralhar(copia);
+        return copia;
     }
 
     private int ObterCategoriaPorNivelCarreira(int nivelCarreira) {
@@ -70,7 +71,7 @@ public class QuestionSpace : BoardSpace {
             yield break;
         }
 
-        int indice = Random.Range(0, perguntas.Count);
+        int indice = GameRng.Range(0, perguntas.Count);
         var (pergunta, respostaCorreta, opcoes) = perguntas[indice];
 
         string tema;
@@ -90,8 +91,9 @@ public class QuestionSpace : BoardSpace {
         string respostaJogador = ui.MostRecentDialogueAnswer();
         if (respostaJogador == respostaCorreta) {
             // Recompensas escalonadas com o nível de carreira
-            int moedasRecompensa = 3 + nivelCarreira;
-            int bonusFinanceiro = Mathf.RoundToInt(p.state.GetSalary() * (0.01f * nivelCarreira));
+            // Antes 3 + nível (~4 moedas) contra ~40/turno de salário: acertar não fazia diferença.
+            int moedasRecompensa = 6 + 2 * nivelCarreira;
+            int bonusFinanceiro = Mathf.RoundToInt(p.state.GetSalary() * 0.05f);
 
             // Mostra moedas caindo
             for (int i = 0; i < moedasRecompensa; i++) {

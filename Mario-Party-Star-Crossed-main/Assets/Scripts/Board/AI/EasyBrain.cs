@@ -200,7 +200,7 @@ public class EasyBrain : AIBrain {
                                 break;
                             case BoardItem.MagicLamp:
                                 if (!turnChoices.ContainsKey("Magic Lamp")) {
-                                    turnChoices.Add("Magic Lamp", basicMovementValue + (state.getCoins() >= 20 ? 45 : -10));
+                                    turnChoices.Add("Magic Lamp", basicMovementValue + (state.getCoins() >= ClassicStarSpace.PrecoEstrela(state) ? 45 : -10));
                                 }
                                 break;
                             case BoardItem.WigglerWhistle:
@@ -335,7 +335,7 @@ public class EasyBrain : AIBrain {
                 }
                 return (nextValue > optionValue) ? "Next" : "Option";
             case Prompts.DadoMagico:
-                int escolhido = numberToRoll > 0 ? numberToRoll : Random.Range(1, 11);
+                int escolhido = numberToRoll > 0 ? numberToRoll : GameRng.Range(1, 11);
                 numberToRoll = 0;
                 return escolhido.ToString();
             default:

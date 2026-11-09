@@ -78,25 +78,25 @@ public class LuckySpace : BoardSpace {
             rareEvents.Add("Ganhe uma Restituição de Impostos"); // Chomp Treat -> Restituição de Impostos
         }
         List<string> luckyOptions = new List<string>();
-        string foo = normalEvents[Random.Range(0, normalEvents.Count - 1)];
+        string foo = normalEvents[GameRng.Range(0, normalEvents.Count)];
         luckyOptions.Add(foo);
         normalEvents.Remove(foo);
-        foo = normalEvents[Random.Range(0, normalEvents.Count - 1)];
+        foo = normalEvents[GameRng.Range(0, normalEvents.Count)];
         luckyOptions.Add(foo);
         normalEvents.Remove(foo);
-        foo = normalEvents[Random.Range(0, normalEvents.Count - 1)];
+        foo = normalEvents[GameRng.Range(0, normalEvents.Count)];
         luckyOptions.Add(foo);
         normalEvents.Remove(foo);
-        foo = normalEvents[Random.Range(0, normalEvents.Count - 1)];
+        foo = normalEvents[GameRng.Range(0, normalEvents.Count)];
         luckyOptions.Add(foo);
         normalEvents.Remove(foo);
-        foo = rareEvents[Random.Range(0, normalEvents.Count - 1)];
+        foo = rareEvents[GameRng.Range(0, rareEvents.Count)];
         luckyOptions.Add(foo);
         rareEvents.Remove(foo);
-        foo = rareEvents[Random.Range(0, normalEvents.Count - 1)];
+        foo = rareEvents[GameRng.Range(0, rareEvents.Count)];
         luckyOptions.Add(foo);
         rareEvents.Remove(foo);
-        luckyOptions.Add(superRareEvents[Random.Range(0, normalEvents.Count - 1)]);
+        luckyOptions.Add(superRareEvents[GameRng.Range(0, superRareEvents.Count)]);
         ui.Spinner("Roleta da Sorte!", new Color(0.0f, 0.68f, 1.0f, 1.0f), luckyOptions);
         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
         switch (ui.MostRecentDialogueAnswer()) {
@@ -298,9 +298,9 @@ public class LuckySpace : BoardSpace {
                 break;
             case "Ganhe um Pacote de Itens":
                 while (p.state.getItems().Count < 3) {
-                    int ri = Random.Range(0, 18);
+                    int ri = GameRng.Range(0, 18);
                     if ((!booItemsAllowed && (ri == 9 || ri == 13)) || (game.state.GetType() != typeof(MarvelousMetroGameState) && ri == 18) || (!chompCallAllowed && ri == 12) || (!magicLampAllowed && ri == 14) || (!chompTreatAllowed && ri == 17) || (!doubleStarCardAllowed && ri == 16)) {
-                        ri = Random.Range(0, 8);
+                        ri = GameRng.Range(0, 8);
                     }
                     yield return StartCoroutine(GivePlayerItem(p, (BoardItem) ri, true));
                 }

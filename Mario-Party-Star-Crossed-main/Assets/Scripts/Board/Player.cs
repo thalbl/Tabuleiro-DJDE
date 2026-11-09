@@ -205,7 +205,7 @@ public class Player : MonoBehaviour {
                             
                             // Se confirmou, executar a troca
                             if (ui.MostRecentDialogueAnswer() == "Usar") {
-                                int swapWith = game.MyPlayerNumber(this) + Random.Range(1, 3);
+                                int swapWith = game.MyPlayerNumber(this) + GameRng.Range(1, 3);
                                 if (swapWith > 4) {
                                     swapWith -= 4;
                                 }
@@ -420,7 +420,7 @@ public class Player : MonoBehaviour {
                                     yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                                     yield return new WaitForSeconds(0.1f);
                                 } else {
-                                    int coinsToSteal = Random.Range(Mathf.Max(1, booTarget.state.getCoins() / 4), Mathf.Max(2, booTarget.state.getCoins() / 2));
+                                    int coinsToSteal = GameRng.Range(Mathf.Max(1, booTarget.state.getCoins() / 4), Mathf.Max(2, booTarget.state.getCoins() / 2));
                                     state.changeCoins(coinsToSteal);
                                     booTarget.state.changeCoins(-1 * coinsToSteal);
                                     ui.Dialogue("Boo", "Ueheehee! Roubei " + coinsToSteal + " Moedas!", false);
@@ -591,8 +591,12 @@ public class Player : MonoBehaviour {
     }
 
     // ================== VER TABULEIRO ==================
-    // Câmera temporária vista de cima enquadrando todas as casas.
+    // Câmera temporária vista de cima enquadrando todas as casas, com os peões ampliados
+    // para ficarem visíveis, sem caixa de diálogo cobrindo o tabuleiro.
     private IEnumerator VerTabuleiro() {
+        // Online: só a máquina dona do jogador abre a visão (as outras não teriam quem tocar para sair)
+        if (state.getController() == 5) yield break;
+
         BoardSpace[] casas = FindObjectsByType<BoardSpace>(FindObjectsSortMode.None);
         if (casas.Length == 0) yield break;
 
@@ -602,21 +606,85 @@ public class Player : MonoBehaviour {
         GameObject camObj = new GameObject("CameraTabuleiro");
         Camera cam = camObj.AddComponent<Camera>();
         cam.fieldOfView = 50f;
+        cam.depth = 10f;
         float meioFov = Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
-        float margem = 4f;
-        float distancia = Mathf.Max((limites.extents.z + margem) / meioFov,
+        float margem = 6f;
+        // Folga de 30% na vertical: o HUD dos jogadores ocupa o topo da tela
+        float distancia = Mathf.Max((limites.extents.z + margem) * 1.3f / meioFov,
                                     (limites.extents.x + margem) / (meioFov * Mathf.Max(0.1f, cam.aspect)));
-        camObj.transform.position = limites.center + Vector3.up * distancia;
+        float alturaVisivel = 2f * distancia * meioFov;
+        // Câmera olhando para baixo com "cima da tela" = +Z: deslocar +Z empurra o tabuleiro para baixo do HUD
+        camObj.transform.position = limites.center + Vector3.up * distancia + Vector3.forward * (alturaVisivel * 0.08f);
         camObj.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
         cam.farClipPlane = distancia + 200f;
-        var dadosCam = camObj.AddComponent<UniversalAdditionalCameraData>();
-        dadosCam.renderPostProcessing = true;
+        camObj.AddComponent<UniversalAdditionalCameraData>().renderPostProcessing = true;
 
+        // Peões ampliados para serem achados de longe
+        float fator = Mathf.Clamp(distancia / 12f, 2.5f, 8f);
+        var escalas = new Dictionary<Transform, Vector3>();
+        foreach (Player pl in game.GetPlayers()) {
+            if (pl == null) continue;
+            escalas[pl.transform] = pl.transform.localScale;
+            pl.transform.localScale = pl.transform.localScale * fator;
+        }
+
+        GameObject aviso = CriarAvisoVerTabuleiro();
+        if (NetworkTurnManager.Instance != null) NetworkTurnManager.Instance.TimerPausado = true;
         myCam.enabled = false;
-        ui.Dialogue("Tabuleiro", "Toque para voltar à sua vez.", true);
-        yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
+
+        yield return null; // ignora o mesmo clique/toque que escolheu a opção
+        while (!(Input.GetKeyDown(KeyCode.Space) || MobileInputManager.IsTouchOrClickDown())) {
+            yield return null;
+        }
+
+        foreach (var kv in escalas) {
+            if (kv.Key != null) kv.Key.localScale = kv.Value;
+        }
+        Destroy(aviso);
         Destroy(camObj);
         myCam.enabled = true;
+        if (NetworkTurnManager.Instance != null) NetworkTurnManager.Instance.TimerPausado = false;
+    }
+
+    private GameObject CriarAvisoVerTabuleiro() {
+        GameObject canvasObj = new GameObject("AvisoVerTabuleiro");
+        Canvas canvas = canvasObj.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 500;
+        var scaler = canvasObj.AddComponent<UnityEngine.UI.CanvasScaler>();
+        scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1280, 720);
+        scaler.matchWidthOrHeight = 0.5f;
+
+        GameObject faixa = new GameObject("Faixa");
+        faixa.transform.SetParent(canvasObj.transform, false);
+        var fundo = faixa.AddComponent<UnityEngine.UI.Image>();
+        fundo.color = new Color(0.04f, 0.12f, 0.08f, 0.88f);
+        fundo.raycastTarget = false;
+        RectTransform rt = faixa.GetComponent<RectTransform>();
+        // Lateral direita: o tabuleiro fica centralizado e a base da tela tem a barra de itens
+        rt.anchorMin = new Vector2(1f, 0.5f);
+        rt.anchorMax = new Vector2(1f, 0.5f);
+        rt.pivot = new Vector2(1f, 0.5f);
+        rt.anchoredPosition = new Vector2(-24f, 0f);
+        rt.sizeDelta = new Vector2(250f, 110f);
+
+        GameObject textoObj = new GameObject("Texto");
+        textoObj.transform.SetParent(faixa.transform, false);
+        var texto = textoObj.AddComponent<UnityEngine.UI.Text>();
+        texto.font = Resources.Load<Font>("font/Fredoka-VariableFont_wdth,wght") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        texto.fontSize = 24;
+        texto.alignment = TextAnchor.MiddleCenter;
+        texto.color = Color.white;
+        texto.raycastTarget = false;
+        texto.text = "Visão do tabuleiro\n<size=20>Toque para voltar</size>";
+        texto.supportRichText = true;
+        RectTransform trt = textoObj.GetComponent<RectTransform>();
+        trt.anchorMin = Vector2.zero;
+        trt.anchorMax = Vector2.one;
+        trt.offsetMin = Vector2.zero;
+        trt.offsetMax = Vector2.zero;
+        return canvasObj;
     }
 
     // ================== ITENS ==================
@@ -631,7 +699,7 @@ public class Player : MonoBehaviour {
     private IEnumerator UsarMochilaMagica() {
         List<string> ganhos = new List<string>();
         for (int i = 0; i < 2 && state.getItems().Count < 3; i++) {
-            BoardItem novo = PoolMochila[Random.Range(0, PoolMochila.Length)];
+            BoardItem novo = PoolMochila[GameRng.Range(0, PoolMochila.Length)];
             state.addItem(novo);
             ganhos.Add(ItemSpace.itemNames[(int)novo]);
         }
@@ -662,8 +730,8 @@ public class Player : MonoBehaviour {
         }
 
         state.removeItem(BoardItem.DuelingGlove);
-        int meuDado = Random.Range(1, 11);
-        int dadoRival = Random.Range(1, 11);
+        int meuDado = GameRng.Range(1, 11);
+        int dadoRival = GameRng.Range(1, 11);
         string resultado;
         if (meuDado > dadoRival) {
             state.changeCoins(aposta);
@@ -703,7 +771,7 @@ public class Player : MonoBehaviour {
         }
 
         state.removeItem(BoardItem.MagicLamp);
-        ClassicStarSpace alvo = estrelas[Random.Range(0, estrelas.Length)];
+        ClassicStarSpace alvo = estrelas[GameRng.Range(0, estrelas.Length)];
         ui.Dialogue("Lâmpada Mágica", "Puf! O gênio levou você direto até a Estrela!", true);
         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
 
@@ -716,7 +784,7 @@ public class Player : MonoBehaviour {
 
     private IEnumerator UsarApitoDoWiggler() {
         string texto;
-        switch (Random.Range(0, 3)) {
+        switch (GameRng.Range(0, 3)) {
             case 0:
                 state.changeCoins(25);
                 texto = "Ganho inesperado: +25 Moedas!";
@@ -728,7 +796,7 @@ public class Player : MonoBehaviour {
                 break;
             default:
                 if (state.getItems().Count < 3) {
-                    BoardItem novo = PoolMochila[Random.Range(0, PoolMochila.Length)];
+                    BoardItem novo = PoolMochila[GameRng.Range(0, PoolMochila.Length)];
                     state.addItem(novo);
                     texto = $"Presente raro: você ganhou {ItemSpace.itemNames[(int)novo]}!";
                 } else {

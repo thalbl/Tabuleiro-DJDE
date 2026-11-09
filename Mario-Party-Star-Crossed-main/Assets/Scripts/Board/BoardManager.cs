@@ -35,12 +35,21 @@ public class BoardManager : MonoBehaviour {
 
         if (loadedState != null) {
             state = loadedState;
+            // Continua a sequência de forma reprodutível a partir da seed salva
+            int seedSalva = state.GetSeed() != 0 ? state.GetSeed() : GameRng.NovaSeed();
+            GameRng.Init(seedSalva + state.getCurrentTurn() * 7919);
         }
         else {
-            // Cria novo jogo com n�vel de carreira inicial
             // Cria novo jogo a partir das configurações definidas no Lobby
             GameMatchConfig.LoadFromPrefs();
             int turns = GameMatchConfig.MaxTurns > 0 ? GameMatchConfig.MaxTurns : 30;
+
+            // Online: todas as máquinas usam a seed enviada pelo host (lockstep).
+            // Precisa vir ANTES de criar os PlayerState (a profissão é sorteada no construtor).
+            int seed = (GameMatchConfig.IsOnlineMatch && GameMatchConfig.SeedPartida != 0)
+                ? GameMatchConfig.SeedPartida
+                : GameRng.NovaSeed();
+            GameRng.Init(seed);
 
             PlayerState ps1 = new PlayerState(GameMatchConfig.Slots[0].ControllerInt, GameMatchConfig.Slots[0].avatarId, GameMatchConfig.Slots[0].name, 1);
             PlayerState ps2 = new PlayerState(GameMatchConfig.Slots[1].ControllerInt, GameMatchConfig.Slots[1].avatarId, GameMatchConfig.Slots[1].name, 1);
@@ -53,6 +62,7 @@ public class BoardManager : MonoBehaviour {
                 new List<int>() { 0, 0, 0, 0 },
                 new List<bool>() { false }
             );
+            state.SetSeed(seed);
             state.SaveGame();
         }
 
@@ -200,7 +210,11 @@ public class BoardManager : MonoBehaviour {
 
 		// Fim de rodada simplificado - sem despesas automáticas
 		if (ui != null) {
-			ui.Dialogue("Fim da Rodada", $"Rodada {state.getCurrentTurn()} concluída!", true);
+            string avisoRede = "";
+            if (NetworkTurnManager.Instance != null && NetworkTurnManager.Instance.DessincroniaDetectada) {
+                avisoRede = $"\n\nAtenção: as máquinas divergiram na rodada {NetworkTurnManager.Instance.RodadaDaDessincronia}. Os placares podem estar diferentes entre os jogadores.";
+            }
+			ui.Dialogue("Fim da Rodada", $"Rodada {state.getCurrentTurn()} concluída!{avisoRede}", true);
             yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
         }
 
@@ -208,6 +222,7 @@ public class BoardManager : MonoBehaviour {
             ps.setTeam(0);
         }
         state.turnCompleted();
+        NetworkTurnManager.Instance?.RegistrarFimDeRodada(state.getCurrentTurn(), state);
         state.SaveGame();
 
         if (state.getCurrentTurn() >= state.getMaxTurns() || CheckCareerLevelComplete()) {
@@ -272,7 +287,10 @@ public class BoardManager : MonoBehaviour {
     }
 
     public BoardSpace GetRandomSpace() {
-        return this.registry[Random.Range(1, this.registry.Count - 1)];
+        // Só casas reais em que dá para parar (o registro tem buracos de id e casas de passagem)
+        List<BoardSpace> validas = registry.FindAll(s => s != null && s.id > 0 && s.CanLandHere());
+        if (validas.Count == 0) return registry[0];
+        return GameRng.Escolher(validas);
     }
 
     public int MyPlayerNumber(Player p) {

@@ -198,7 +198,7 @@ public class ItemShop : BoardSpace {
     // Helper para embaralhar lista
     private void Shuffle<T>(List<T> list) {
         for (int i = list.Count - 1; i > 0; i--) {
-            int j = Random.Range(0, i + 1);
+            int j = GameRng.Range(0, i + 1);
             T temp = list[i];
             list[i] = list[j];
             list[j] = temp;

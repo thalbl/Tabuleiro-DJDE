@@ -142,7 +142,7 @@ public class ItemSpace : BoardSpace {
         if (game.state.getTurnStatus() != 4) {
             donePassing = false;
             ui.MoveCounter(false);
-            BoardItem choice = CalcOdds(Random.Range(1, 20), p.state.getPlacing(), game.state.getTurnStatus());
+            BoardItem choice = CalcOdds(GameRng.Range(1, 21), p.state.getPlacing(), Mathf.Min(game.state.getTurnStatus(), 3)) /* odds somam 20; turnStatus vai até 4 mas a tabela só até 3 */;
             GetComponentsInChildren<AudioSource>()[0].Play();
             yield return StartCoroutine(GivePlayerItem(p, choice, true));
 
@@ -180,19 +180,19 @@ public class ItemSpace : BoardSpace {
             i += 1;
         }
         if (i == 4) {
-            return tier1[Random.Range(0, tier1.Count - 1)];
+            return tier1[GameRng.Range(0, tier1.Count)];
         }
         else if (i == 3) {
-            return tier2[Random.Range(0, tier2.Count - 1)];
+            return tier2[GameRng.Range(0, tier2.Count)];
         }
         else if (i == 2) {
-            return tier3[Random.Range(0, tier3.Count - 1)];
+            return tier3[GameRng.Range(0, tier3.Count)];
         }
         else if (i == 1) {
-            return tier4[Random.Range(0, tier4.Count - 1)];
+            return tier4[GameRng.Range(0, tier4.Count)];
         }
         else {
-            return tier5[Random.Range(0, tier5.Count - 1)];
+            return tier5[GameRng.Range(0, tier5.Count)];
         }
     }
 

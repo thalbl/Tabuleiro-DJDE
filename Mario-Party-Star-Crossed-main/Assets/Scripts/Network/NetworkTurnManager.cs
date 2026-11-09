@@ -27,6 +27,8 @@ public class NetworkTurnManager : MonoBehaviour {
     public float TempoRestante => Mathf.Max(0f, timeoutTurnoSegundos - timerTurnoAtual);
     public float ProgressoTimer => timeoutTurnoSegundos > 0 ? Mathf.Clamp01(1f - (timerTurnoAtual / timeoutTurnoSegundos)) : 1f;
     public bool IsTurnoAtivo => turnoAtivo;
+    /// <summary>Pausa a contagem do turno (ex.: enquanto o jogador olha o tabuleiro).</summary>
+    public bool TimerPausado { get; set; }
     public int JogadorAtivoIndex => jogadorAtivoIndex;
     public Player JogadorAtivoPlayer { get; private set; }
 
@@ -68,7 +70,7 @@ public class NetworkTurnManager : MonoBehaviour {
         if (!GameMatchConfig.IsOnlineMatch && !habilitarTimerLocal) return;
 
         // Gerenciamento de Timeout de Turno para partidas online ou com timer local ativo
-        if (turnoAtivo) {
+        if (turnoAtivo && !TimerPausado) {
             // Bots não têm limite de tempo (o timeout no turno do bot quebrava a rolagem de múltiplos dados)
             if (JogadorAtivoPlayer != null && JogadorAtivoPlayer.state != null) {
                 int ctrl = JogadorAtivoPlayer.state.getController();
@@ -187,6 +189,12 @@ public class NetworkTurnManager : MonoBehaviour {
             case NetworkProtocol.MessageType.GamePlayerDisconnect:
                 TratarDesconexaoJogador(packet.senderSlot);
                 break;
+
+            case NetworkProtocol.MessageType.GameChecksum:
+                if (packet.senderSlot != meuSlot && int.TryParse(packet.stringPayload, out int rodadaRemota)) {
+                    CompararChecksum(rodadaRemota, packet.intPayload, packet.senderSlot);
+                }
+                break;
         }
     }
 
@@ -224,6 +232,68 @@ public class NetworkTurnManager : MonoBehaviour {
     /// Chamado quando o tempo de ação do jogador expira no modo online.
     /// Transforma temporariamente o jogador em IA para executar a ação e não travar a partida.
     /// </summary>
+    // ================== CHECKSUM DE ESTADO (online) ==================
+    // Cada máquina calcula um hash do estado ao fim da rodada e envia; quem recebe compara com o seu.
+    private readonly Dictionary<int, int> checksumsLocais = new Dictionary<int, int>();
+    private readonly List<(int rodada, int hash, int slot)> checksumsPendentes = new List<(int, int, int)>();
+
+    /// <summary>Verdadeiro se alguma rodada teve estado diferente entre as máquinas.</summary>
+    public bool DessincroniaDetectada { get; private set; }
+    public int RodadaDaDessincronia { get; private set; } = -1;
+
+    public static int CalcularChecksum(GameState estado) {
+        unchecked {
+            int h = 17;
+            h = h * 31 + estado.getCurrentTurn();
+            foreach (PlayerState p in estado.GetPlayers()) {
+                h = h * 31 + p.getCoins();
+                h = h * 31 + p.getStars();
+                h = h * 31 + p.getSpaceID();
+                h = h * 31 + p.GetCareerLevel();
+                h = h * 31 + p.GetEducationLevel();
+                h = h * 31 + p.GetSalary();
+                h = h * 31 + p.getItems().Count;
+                foreach (BoardItem item in p.getItems()) h = h * 31 + (int)item;
+            }
+            return h;
+        }
+    }
+
+    /// <summary>Chamado pelo BoardManager ao fim de cada rodada.</summary>
+    public void RegistrarFimDeRodada(int rodada, GameState estado) {
+        if (!GameMatchConfig.IsOnlineMatch) return;
+        int hash = CalcularChecksum(estado);
+        checksumsLocais[rodada] = hash;
+
+        if (NetworkTransportService.Instance != null) {
+            var pkt = new NetworkProtocol.NetworkPacket(NetworkProtocol.MessageType.GameChecksum, ObterMeuSlot());
+            pkt.intPayload = hash;
+            pkt.stringPayload = rodada.ToString();
+            NetworkTransportService.Instance.EnviarPacote(pkt);
+        }
+
+        // Compara os que chegaram antes do nosso cálculo
+        for (int i = checksumsPendentes.Count - 1; i >= 0; i--) {
+            if (checksumsPendentes[i].rodada == rodada) {
+                var c = checksumsPendentes[i];
+                checksumsPendentes.RemoveAt(i);
+                CompararChecksum(c.rodada, c.hash, c.slot);
+            }
+        }
+    }
+
+    private void CompararChecksum(int rodada, int hashRemoto, int slotRemoto) {
+        if (!checksumsLocais.TryGetValue(rodada, out int hashLocal)) {
+            checksumsPendentes.Add((rodada, hashRemoto, slotRemoto));
+            return;
+        }
+        if (hashLocal != hashRemoto && !DessincroniaDetectada) {
+            DessincroniaDetectada = true;
+            RodadaDaDessincronia = rodada;
+            Debug.LogError($"[NetworkTurnManager] DESSINCRONIZAÇÃO na rodada {rodada}: local={hashLocal} jogador {slotRemoto + 1}={hashRemoto}. Seed={GameRng.Seed}");
+        }
+    }
+
     private void ExecutarTimeoutTurno() {
         turnoAtivo = false;
         Debug.LogWarning($"[NetworkTurnManager] Tempo limite de {timeoutTurnoSegundos}s atingido para o Jogador {jogadorAtivoIndex + 1}! Assumindo por IA.");

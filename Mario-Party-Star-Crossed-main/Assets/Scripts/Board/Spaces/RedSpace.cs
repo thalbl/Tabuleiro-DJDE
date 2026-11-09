@@ -62,7 +62,7 @@ public class RedSpace : BoardSpace {
             yield break;
         }
 
-        int indice = Random.Range(0, penalidades.Count);
+        int indice = GameRng.Range(0, penalidades.Count);
         Dictionary<string, object> penalidade = penalidades[indice];
         string tipo = (string)penalidade["tipo"];
         List<int> valores = (List<int>)penalidade["valores"];

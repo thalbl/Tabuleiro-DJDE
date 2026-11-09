@@ -54,30 +54,30 @@ public class PlayerState : ISerializationCallbackReceiver {
 
 
     // Dicionários estáticos
+    // Economia rebalanceada (2026-11): o líquido por turno (salário - despesa) ia de +26 (Artista)
+    // a +60 (Empresário), 2,3x de diferença só pelo sorteio da profissão. Agora vai de +32 a +48:
+    // quem ganha mais também gasta mais (inflação de estilo de vida), mantendo a ordem dos salários.
     private static readonly Dictionary<string, int> ProfissoesSalariosBase = new Dictionary<string, int> {
-        {"Médico", 80}, {"Engenheiro", 70}, {"Professor", 40},
-        {"Advogado", 75}, {"Designer", 50}, {"Programador", 65},
-        {"Enfermeiro", 45}, {"Chef de Cozinha", 55}, {"Jornalista", 48},
-        {"Piloto", 90}, {"Artista", 35}, {"Cientista", 72}, {"Empresário", 100}
+        {"Médico", 80}, {"Engenheiro", 70}, {"Professor", 45},
+        {"Advogado", 75}, {"Designer", 55}, {"Programador", 65},
+        {"Enfermeiro", 50}, {"Chef de Cozinha", 58}, {"Jornalista", 52},
+        {"Piloto", 90}, {"Artista", 45}, {"Cientista", 72}, {"Empresário", 95}
     };
 
-    // Despesas calibradas para 25-40% do salário base:
-    // - Profissões de alto salário têm custo de vida maior (inflação de estilo de vida)
-    // - Profissões de menor salário são mais econômicas
     private static readonly Dictionary<string, int> ProfissoesDespesasBase = new Dictionary<string, int> {
-        {"Médico", 28},          // 28/80 = 35%
-        {"Engenheiro", 21},      // 21/70 = 30%
-        {"Professor", 10},       // 10/40 = 25%
-        {"Advogado", 26},        // 26/75 = 35%
-        {"Designer", 15},        // 15/50 = 30%
-        {"Programador", 20},     // 20/65 = 31%
-        {"Enfermeiro", 14},      // 14/45 = 31%
-        {"Chef de Cozinha", 17}, // 17/55 = 31%
-        {"Jornalista", 14},      // 14/48 = 29%
-        {"Piloto", 36},          // 36/90 = 40%
-        {"Artista", 9},          // 9/35  = 26%
-        {"Cientista", 22},       // 22/72 = 31%
-        {"Empresário", 40}       // 40/100 = 40%
+        {"Médico", 34},          // 80 - 34 = 46
+        {"Engenheiro", 26},      // 70 - 26 = 44
+        {"Professor", 12},       // 45 - 12 = 33
+        {"Advogado", 30},        // 75 - 30 = 45
+        {"Designer", 20},        // 55 - 20 = 35
+        {"Programador", 24},     // 65 - 24 = 41
+        {"Enfermeiro", 16},      // 50 - 16 = 34
+        {"Chef de Cozinha", 22}, // 58 - 22 = 36
+        {"Jornalista", 18},      // 52 - 18 = 34
+        {"Piloto", 42},          // 90 - 42 = 48
+        {"Artista", 13},         // 45 - 13 = 32
+        {"Cientista", 28},       // 72 - 28 = 44
+        {"Empresário", 47}       // 95 - 47 = 48
     };
 
     // Multiplicadores lineares controlados (máx 3.0x em vez de 7.3x)
@@ -156,7 +156,7 @@ public class PlayerState : ISerializationCallbackReceiver {
 
     // ================== SISTEMA PROFISSIONAL ==================
     private void AtribuirProfissao() {
-        int index = Random.Range(0, ProfissoesSalariosBase.Count);
+        int index = GameRng.Range(0, ProfissoesSalariosBase.Count);
         int count = 0;
         foreach (var profissaoSalario in ProfissoesSalariosBase) {
             if (count == index) {
@@ -349,7 +349,7 @@ public class PlayerState : ISerializationCallbackReceiver {
     }
 
     public BoardItem stealRandomItem() {
-        int index = Random.Range(0, this.items.Count - 1);
+        int index = GameRng.Range(0, this.items.Count);
         BoardItem bi = items[index];
         this.removeItem(bi);
         return bi;

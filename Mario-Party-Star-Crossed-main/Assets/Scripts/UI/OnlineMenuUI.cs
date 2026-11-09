@@ -640,6 +640,7 @@ public class OnlineMenuUI : MonoBehaviour {
                             payload.AplicarParaConfig(meuSlot);
                         }
                     }
+                    GameMatchConfig.SeedPartida = packet.intPayload;
                     IniciarTransiçãoCenaMVP();
                 }
                 break;
@@ -876,6 +877,9 @@ public class OnlineMenuUI : MonoBehaviour {
             }
         }
 
+        // Seed única da partida: todas as máquinas sorteiam igual (lockstep)
+        GameMatchConfig.SeedPartida = GameRng.NovaSeed();
+
         // Host avisa todos os clientes para iniciarem a partida
         if (NetworkTransportService.Instance != null) {
             NetworkProtocol.LobbyStatePayload payload = NetworkProtocol.LobbyStatePayload.CriarDeConfig();
@@ -883,6 +887,7 @@ public class OnlineMenuUI : MonoBehaviour {
 
             NetworkProtocol.NetworkPacket pkt = new NetworkProtocol.NetworkPacket(NetworkProtocol.MessageType.LobbyStartGame, 0);
             pkt.stringPayload = json;
+            pkt.intPayload = GameMatchConfig.SeedPartida;
             NetworkTransportService.Instance.EnviarPacote(pkt);
         }
 

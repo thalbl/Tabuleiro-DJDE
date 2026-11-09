@@ -169,25 +169,25 @@ public class BowserSpace : BoardSpace {
             }
         }
         List<string> bowserOptions = new List<string>();
-        string foo = normalEvents[Random.Range(0, normalEvents.Count - 1)];
+        string foo = normalEvents[GameRng.Range(0, normalEvents.Count)];
         bowserOptions.Add(foo);
         normalEvents.Remove(foo);
-        foo = normalEvents[Random.Range(0, normalEvents.Count - 1)];
+        foo = normalEvents[GameRng.Range(0, normalEvents.Count)];
         bowserOptions.Add(foo);
         normalEvents.Remove(foo);
-        foo = normalEvents[Random.Range(0, normalEvents.Count - 1)];
+        foo = normalEvents[GameRng.Range(0, normalEvents.Count)];
         bowserOptions.Add(foo);
         normalEvents.Remove(foo);
-        foo = specialEvents[Random.Range(0, normalEvents.Count - 1)];
+        foo = specialEvents[GameRng.Range(0, specialEvents.Count)];
         bowserOptions.Add(foo);
         specialEvents.Remove(foo);
-        foo = specialEvents[Random.Range(0, normalEvents.Count - 1)];
+        foo = specialEvents[GameRng.Range(0, specialEvents.Count)];
         bowserOptions.Add(foo);
         specialEvents.Remove(foo);
-        foo = specialEvents[Random.Range(0, normalEvents.Count - 1)];
+        foo = specialEvents[GameRng.Range(0, specialEvents.Count)];
         bowserOptions.Add(foo);
         specialEvents.Remove(foo);
-        bowserOptions.Add(gagEvents[Random.Range(0, normalEvents.Count - 1)]);
+        bowserOptions.Add(gagEvents[GameRng.Range(0, gagEvents.Count)]);
         ui.Spinner("Bowser Time!", new Color(1.0f, 0.23f, 0.0f, 1.0f), bowserOptions);
         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
         switch (ui.MostRecentDialogueAnswer()) {

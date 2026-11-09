@@ -70,7 +70,7 @@ public abstract class BoardSpace : MonoBehaviour {
             yield return new WaitForSeconds(0.1f);
             p.state.setTeam(2);
             yield return new WaitForSeconds(0.1f);
-            if (Random.Range(1, 100) <= blueChance) {
+            if (GameRng.Range(1, 100) <= blueChance) {
                 p.state.setTeam(1);
             }
         } 
@@ -171,7 +171,7 @@ public abstract class BoardSpace : MonoBehaviour {
         }
         if (canLandHere) {
             if (roll <= 0) {
-                return AIValue(state, rivals) - (state.getCoins() >= 20 ? SpacesToStar(state.getItems().Contains(BoardItem.SkeletonKey)) : 0);
+                return AIValue(state, rivals) - (state.getCoins() >= ClassicStarSpace.PrecoEstrela(state) ? SpacesToStar(state.getItems().Contains(BoardItem.SkeletonKey)) : 0);
             } else {
                 return next.CumulativeValue(state, rivals, roll - 1, depth + 1);
             }

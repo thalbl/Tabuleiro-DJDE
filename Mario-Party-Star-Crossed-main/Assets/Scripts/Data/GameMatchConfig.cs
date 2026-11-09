@@ -41,6 +41,8 @@ public static class GameMatchConfig {
     public static string RoomCode = "";
     public static int LocalPlayerIndex = 0; // 0: Host, 1..3: Clientes remotos conectados
     public static bool HasCustomConfig = false;
+    // Seed do GameRng gerada pelo host no online (0 = sortear localmente)
+    public static int SeedPartida = 0;
 
     public static string GetMapDisplayName(string sceneName) {
         if (sceneName == "MapaRapido") return "CIRCUITO RÁPIDO";
@@ -59,6 +61,7 @@ public static class GameMatchConfig {
         RoomCode = "";
         LocalPlayerIndex = 0;
         HasCustomConfig = false;
+        SeedPartida = 0;
     }
 
     public static void SaveToPrefs() {
@@ -70,6 +73,7 @@ public static class GameMatchConfig {
         PlayerPrefs.SetInt("Match_IsOnline", IsOnlineMatch ? 1 : 0);
         PlayerPrefs.SetString("Match_RoomCode", RoomCode);
         PlayerPrefs.SetInt("Match_LocalPlayerIndex", LocalPlayerIndex);
+        PlayerPrefs.SetInt("Match_Seed", SeedPartida);
 
         for (int i = 0; i < 4; i++) {
             PlayerPrefs.SetString($"Match_P{i}_Name", Slots[i].name);
@@ -93,6 +97,7 @@ public static class GameMatchConfig {
         IsOnlineMatch = PlayerPrefs.GetInt("Match_IsOnline", 0) == 1;
         RoomCode = PlayerPrefs.GetString("Match_RoomCode", "");
         LocalPlayerIndex = PlayerPrefs.GetInt("Match_LocalPlayerIndex", 0);
+        SeedPartida = PlayerPrefs.GetInt("Match_Seed", 0);
 
         for (int i = 0; i < 4; i++) {
             Slots[i].name = PlayerPrefs.GetString($"Match_P{i}_Name", $"Jogador {i + 1}");

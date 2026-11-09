@@ -25,6 +25,7 @@ public static class NetworkProtocol {
         GameEmote = 13,
         GameTimeout = 14,
         GamePlayerDisconnect = 15,
+        GameChecksum = 16,       // hash do estado ao fim de cada rodada (detecta dessincronização)
         Heartbeat = 20
     }
 
