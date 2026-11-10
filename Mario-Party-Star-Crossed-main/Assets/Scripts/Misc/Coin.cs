@@ -19,6 +19,7 @@ public class Coin : MonoBehaviour {
                 p.Play();
             }
             foreach (AudioSource a in this.GetComponentsInChildren<AudioSource>()) {
+                Configuracoes.PrepararEfeito(a);
                 a.Play();
             }
             Invoke("DelayedDestroy", 1.0f);

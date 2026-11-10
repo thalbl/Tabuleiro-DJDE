@@ -1,9 +1,9 @@
 ---
 name: contexto-projeto
-description: Contexto do jogo "Mario Party Star Crossed" re-tematizado como simulador de vida financeira/carreira em PT-BR (Unity 6, Built-in RP). Use SEMPRE antes de mexer em gameplay, espaços do tabuleiro, itens, economia (moedas/salário/despesas), carreira/educação, turnos, IA, UI de diálogo, multiplayer local/online, save, cenas ou visual/shaders deste projeto.
+description: Contexto do jogo "Caminho do Sucesso" (base de um fangame de tabuleiro, re-tematizado como simulador de vida financeira/carreira em PT-BR; Unity 6 + URP). Use SEMPRE antes de mexer em gameplay, espaços do tabuleiro, itens, economia (moedas/salário/despesas), carreira/educação, turnos, IA, UI de diálogo, multiplayer local/online, save, cenas, identidade/marca ou visual/shaders deste projeto.
 ---
 
-# Contexto do Projeto — Simulador de Vida Financeira (base Mario Party)
+# Contexto do Projeto — Caminho do Sucesso (simulador de vida financeira)
 
 Fork de um fangame de Mario Party ("Star Crossed") cujos conceitos foram **re-tematizados como simulador de vida financeira e carreira**, todo em **português brasileiro**. O núcleo de tabuleiro (turnos, dados, casas, itens, estrelas) foi mantido; a camada de regras foi trocada por salário, despesas, carreira, educação e quizzes de educação financeira.
 
@@ -136,7 +136,7 @@ Base `BoardSpace`: `next`, `id`, `canLandHere`, `blueChance`, corrotinas `pass(p
 **Categoria por nível de carreira** (Blue/Red/Question): Nv 1–3 → 0 · 4–6 → 1 · 7–8 → 2 · 9–10 → 3.
 Formato dos `.txt`: uma entrada por linha, campos separados por `|` (quiz: `pergunta|correta|op2|op3|op4|op5`).
 
-**Legado não usado nas cenas (inglês, temática Mario):** `Boo`, `BowserSpace`, `DuelSpace`, `LuckySpace` (já parcialmente traduzida), `TestHappeningSpace`, `SkeletonGate` (só 1 no MVP). Ao reaproveitar, traduzir e re-tematizar.
+**Legado removido (2026-11-10):** `Boo`, `BowserSpace`, `DuelSpace`, `LuckySpace`, `TestHappeningSpace`, `MinigameSet`, as subclasses de `GameState` dos tabuleiros originais, `SampleScene` e o prefab/materiais da casa do Bowser. Não recriar conteúdo com personagens de terceiros.
 
 ---
 
@@ -155,16 +155,16 @@ O enum mantém nomes originais; o texto exibido vem de `ItemSpace.itemNames[(int
 | PlunderChest | Baú do Tesouro | rouba item de rival | 7 |
 | GoldenDrink | Bebida Dourada | — | 6 |
 | VacPack | Mochila Mágica | — | 5 |
-| BooBell | Sino do Boo | rouba moedas (grátis) ou estrela (40) | 9 |
+| BooBell | Espião Corporativo | desvia moedas (grátis) ou estrela (40); o item só é gasto se agir | 9 |
 | TweesterTotem | Ventania | manda rival p/ casa aleatória | 5 |
 | DuelingGlove | Luva de Duelo | — (duelo não existe) | 7 |
-| ChompCall | Apito do Chomp | — | 3 |
-| Gaddlight | Escudo Protetor | +20 moedas; protege do Boo | 4 |
+| ChompCall | Agência de Cobrança | cobra até 5 moedas de cada rival | 3 |
+| Gaddlight | Escudo Protetor | protege do Espião enquanto no bolso; ou resgata +20 (consome) | 4 |
 | MagicLamp | Lâmpada Mágica | — | 15 |
-| BowserSuit | Fantasia do Bowser | dado "Bowser"; rouba 20 de quem passar | 10 |
+| BowserSuit | Traje de Executivo | 5 dados de 1 a 3; cobra 20 de quem alcançar | 10 |
 | DoubleStarCard | Moeda Dobrada | +30 moedas / 2 estrelas na Star | 12 |
 | ChompTreat | Presente Surpresa | +25 moedas | 3 |
-| WigglerWhistle | Apito do Wiggler | — | 8 |
+| WigglerWhistle | Bilhete Premiado | evento raro: +25, aumento de salário ou item | 8 |
 
 `state.setMovement(n)` escolhe o prefab de dado: 0 normal, 1 duplo, 2 triplo, 3 mágico, 4 veneno, 5 Bowser.
 ⚠️ Há **três vocabulários** para os mesmos itens: comentários do enum ("Poupança", "Bolsa de Valores"...), `itemNames` ("Cofrinho", "Super Dado"...) e textos do `LuckySpace` ("Ganhe uma Poupança"). O canônico na UI é `itemNames`.
@@ -173,7 +173,7 @@ O enum mantém nomes originais; o texto exibido vem de `ItemSpace.itemNames[(int
 
 ## 7. Sistemas existentes
 
-- **Save/Load**: `GameState` serializado com `JsonUtility` em `Application.persistentDataPath/mario_party_save.dat` (fallback legado `Assets/Data/`). Cena salva em `PlayerPrefs["SavedGame_MapScene"]`. `PlayerPrefs["LoadSavedGame"]==1` faz o `BoardManager` carregar. **Todo campo novo de estado deve ser `[SerializeField]` e compatível com JsonUtility** (sem Dictionary, sem propriedades).
+- **Save/Load**: `GameState` serializado com `JsonUtility` em `Application.persistentDataPath/caminho_sucesso_save.dat` (PC: `LocalLow/DJDE/Caminho do Sucesso`). `GameState.MigrarSaveLegado()` copia uma única vez o save antigo (`mario_party_save.dat`, inclusive de `LocalLow/DefaultCompany/My project (1)`), marcado pela pref `SaveLegadoMigrado`. O mapa da partida fica no próprio save (`cenaMapa`). `PlayerPrefs["LoadSavedGame"]==1` faz o `BoardManager` carregar. **Todo campo novo de estado deve ser `[SerializeField]` e compatível com JsonUtility** (sem Dictionary, sem propriedades).
 - **IA**: `EasyBrain.Prompt()` decide por heurística usando `AIValue/CumulativeValue` das casas. Toda casa nova precisa implementar `AIValue` e a IA precisa reconhecer as strings de opção novas.
 - **Multiplayer local**: até 4 humanos/bots, opção Pass & Play.
 - **Multiplayer online**: `NetworkTransportService` (TCP host/cliente, LAN/Hamachi/IP público), `NetworkProtocol` (pacotes JSON: lobby, `GameTurnStart`, `GameDiceRoll`, `GameOptionChoice`, `GameEmote`, `GameTimeout`, heartbeat), `NetworkTurnManager` (timer de turno, sincroniza escolhas), `DiceBlock.ForcarRolagemRemota`.
@@ -193,7 +193,7 @@ O enum mantém nomes originais; o texto exibido vem de `ItemSpace.itemNames[(int
 6. Comparação por string de opções/itens: renomear texto quebra lógica silenciosamente.
 7. Encoding: alguns arquivos têm `�` em comentários (salvos em ANSI). Salvar sempre **UTF-8**; os `.txt` de `Resources` têm acentos.
 8. `BoardManager.Update` roda a colocação todo frame e cria componentes via `FindObjectOfType` (API obsoleta em Unity 6 → preferir `FindFirstObjectByType`).
-9. Texto legado em inglês com personagens Nintendo (Bowser, Boo, Boom Boom). Não introduzir mais conteúdo/nomes/arte de Mario: o objetivo é um jogo **original** de educação financeira; ao tocar nesses pontos, re-tematizar.
+9. **Identidade**: nada de nomes, textos ou arte de personagens de terceiros. Ícones de itens, Estrela, Moeda, selos de movimento e a textura da casa de item são **gerados por código** em `Assets/Scripts/Editor/IconesProcedurais.cs` (menu Ferramentas > Gerar Ícones Procedurais); para mudar um ícone, edite o desenho lá e gere de novo (sobrescreve os PNGs com o mesmo nome, então cenas e código não mudam). Fonte de UI: Fredoka. O dado especial chama `ExecutiveDiceBlock`. Os nomes internos do enum `BoardItem` e dos arquivos de ícone (BooBell.png, BowserSuit.png...) continuam os antigos e não aparecem na tela.
 10. Placar compara jogadores com `>` — empates dividem colocação.
 11. **IA ↔ jogo por texto**: `EasyBrain.Prompt` faz `switch` pelo texto da pergunta; sem match cai em `options[0]` (= 1ª opção na ordem original). **Use sempre as constantes de `Prompts` (`Board/AI/Prompts.cs`) nos dois lados** — nunca string literal. Alvos de item passam por `EasyBrain.EscolherAlvo` (nunca "Cancelar"/ele mesmo, salvo plano explícito). Bot decide bifurcação via `Intersection.AIPathChoice` (humano responde a pergunta de perfil).
 12. `UIManager` guarda `choices` **invertida** (layout dos botões) e reverte de volta antes de chamar a IA. Não passe `choices` direto para a IA.
@@ -204,7 +204,7 @@ O enum mantém nomes originais; o texto exibido vem de `ItemSpace.itemNames[(int
 14b. **Economia (rebalanceada 2026-11)**: líquido por turno +32..+48 conforme a profissão (antes +26..+60). Estrela com preço progressivo `ClassicStarSpace.PrecoEstrela` = 20 + 10 × estrelas do jogador (casa de passagem: compra em `pass()`). Quiz certo = 6 + 2×nível + 5% do salário. Casas azul/vermelha: valores em moedas ×3 na categoria 0 (`BoardSpace.EscalarMoedasCasa`). **Promoção por experiência**: a cada 30 casas andadas (`PlayerState.CasasPorPromocaoExperiencia`), anunciada ao fim do movimento — substituiu "a cada 2 voltas", que dependia da rota (anéis de 16 a 60 casas). Tabuleiro é feito de **anéis** ligados por `CareerTransitionSpace.nextLoopStart`; nenhum anel tem rota que evite o portão.
 14d. **Vitória**: `BoardManager.metaCarreira` por cena (MVP = 6, MapaRapido = 5; calibrado com bots: o líder chega por volta da rodada 12–13 de 20). Quem bate a meta encerra a partida e fica em 1º (`[META]` no detalhamento); senão vence a pontuação ao fim das rodadas. Partidas curtas (ex.: 10 rodadas) tendem a terminar por pontos. Diálogo "Objetivo da Partida" na abertura (`MostrarAbertura`). Save a cada turno com `GameState.proximoJogador`; carregar retoma na vez certa. Save de jogo fora do git (`.gitignore`).
 14c. `getTurnStatus()` vai de 0 a 4, mas a tabela `odds` do `ItemSpace` só tem 0..3 (clamp aplicado). Retratos dos jogadores no HUD (`PlayerTracker` Avatar/Picture) não têm textura: aparecem como quadrados pretos (falta arte).
-15. Nome do jogo na UI: **"Caminho do Sucesso"** (`MainMenuBuilder`). `productName`/`companyName` ainda são os padrões da Unity.
+15. Identidade do projeto: produto **"Caminho do Sucesso"**, empresa **DJDE**, pacote **`com.djde.caminhodosucesso`** (Standalone/Android/iOS), igual ao `MobileBuildTools`. Mudar empresa/produto move `persistentDataPath` e as PlayerPrefs.
 
 ---
 
@@ -231,6 +231,16 @@ O enum mantém nomes originais; o texto exibido vem de `ItemSpace.itemNames[(int
 7. **UI**: menus feitos em código — manter o padrão; se for refazer, considerar UI Toolkit (skill `unity:ui`).
 
 ---
+
+## 9b. Padrão de UI (2026-11-10)
+
+- **Tudo passa pelo `TemaUI` (`Assets/Scripts/UI/TemaUI.cs`)**: paleta (painel verde-escuro `#0F2A1F`, cartão claro `#F0FDF4`, ouro `#FBBF24`, verde/vermelho/azul), fonte Fredoka, sprites arredondado/círculo gerados, fábricas `Texto`, `Botao` (estilos Claro/Destaque/Perigo/Escuro), `Slider`, `Interruptor`, `Segmentado`, e `EstilizarBotao/EstilizarTexto/SombraTexto/ContornoTexto` para UI existente. Não definir cores/fontes soltas em UI nova.
+- **uGUI legado (`UnityEngine.UI.Text`)**: com Fredoka a entrelinha é alta; caixa de texto baixa demais + `VerticalWrapMode.Truncate` = o texto **some**. Use `Overflow` ou caixa alta o bastante.
+- **Filhos desenham por cima do pai**: fundo criado como filho de um Text cobre o texto (era o bug do "Rodada X/Y" ilegível).
+- **`Outline` sobre imagem semitransparente "mancha" a cor** (as cópias do contorno aparecem através). Janelas modais usam `TemaUI.Janela` (opaco); destaque de vez no HUD é cor de fundo mais clara, não contorno.
+- `GetComponent<Shadow>()` pode devolver um `Outline` (herança): use `SombraPura` do TemaUI para não empilhar componentes ao restilizar.
+- **Configurações**: `Data/Configuracoes.cs` (PlayerPrefs `Cfg_*`, aplicado em toda cena) + `UI/MenuConfiguracoes.cs` (pausa no tabuleiro com botão II e Esc/Voltar; "Configurações" no canto do menu principal). Partida local pausa com `Time.timeScale = 0`; online não pausa. Com o menu aberto, `MenuConfiguracoes.Aberto` bloqueia avançar/rolar: use sempre `MobileInputManager.ConfirmarPressionado()` em vez de ler Espaço/toque direto.
+- **Tela de resultado** (`GameOverController`) é montada em código com o tema; a UI antiga da cena é desligada no Start.
 
 ## 10. Convenções ao contribuir
 

@@ -35,16 +35,16 @@ public class ItemSpace : BoardSpace {
     "Baú do Tesouro",     // Plunder Chest -> Baú do Tesouro
     "Bebida Dourada",     // Golden Drink -> Bebida Dourada
     "Mochila Mágica",     // Vac Pack -> Mochila Mágica
-    "Sino do Boo",        // Boo Bell -> Sino do Boo
+    "Espião Corporativo", // Boo Bell
     "Ventania",           // Tweester Totem -> Ventania
     "Luva de Duelo",      // Dueling Glove -> Luva de Duelo
-    "Apito do Chomp",     // Chomp Call -> Apito do Chomp
+    "Agência de Cobrança", // Chomp Call
     "Escudo Protetor",    // Gaddlight -> Escudo Protetor
     "Lâmpada Mágica",     // Magic Lamp -> Lâmpada Mágica
-    "Fantasia do Bowser", // Bowser Suit -> Fantasia do Bowser
+    "Traje de Executivo", // Bowser Suit
     "Moeda Dobrada",      // Double Star Card -> Moeda Dobrada
     "Presente Surpresa",  // Chomp Treat -> Presente Surpresa
-    "Apito do Wiggler"    // Wiggler Whistle -> Apito do Wiggler
+    "Bilhete Premiado"    // Wiggler Whistle
 };
 
     public static List<string> itemDescriptions = new List<string>() {
@@ -57,11 +57,11 @@ public class ItemSpace : BoardSpace {
     "Rouba um item de um rival.",
     "Bônus de produtividade: +10 Moedas (+3 por nível de carreira).",
     "Troca a mochila por até 2 itens aleatórios.",
-    "O Boo rouba moedas ou estrelas de um rival!",
+    "O espião desvia Moedas (ou uma Estrela, por 40) de um rival!",
     "Sopra um jogador para um lugar aleatório.",
     "Duelo de dados com um rival: quem tirar mais leva até 15 Moedas.",
     "Cobra até 5 Moedas de cada rival.",
-    "Protege contra o roubo do Boo enquanto estiver no bolso. Ou resgate por +20 Moedas.",
+    "Protege contra o Espião Corporativo enquanto estiver no bolso. Ou resgate por +20 Moedas.",
     "Te leva direto até a Estrela para comprá-la!",
     "Rola 5 dados de 1 a 3 e cobra 20 Moedas de quem você alcançar.",
     "Receba +30 Moedas na hora!",

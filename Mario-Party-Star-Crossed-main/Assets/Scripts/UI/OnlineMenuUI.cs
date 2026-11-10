@@ -12,12 +12,12 @@ using System.IO;
 public class OnlineMenuUI : MonoBehaviour {
 
     // =================== CORES DO DESIGN ===================
-    private Color corFundoOverlay = new Color(0.04f, 0.12f, 0.18f, 0.94f);
-    private Color corCardFundo = new Color(0.08f, 0.20f, 0.28f, 0.96f);
-    private Color corCardBorda = new Color(0.20f, 0.65f, 0.95f, 0.6f);
+    private Color corFundoOverlay = new Color(0.04f, 0.14f, 0.09f, 1f); // mesmo verde opaco do lobby local (TemaUI)
+    private Color corCardFundo = new Color(0.09f, 0.23f, 0.17f, 0.96f); // verde do tema
+    private Color corCardBorda = new Color(0.29f, 0.87f, 0.50f, 0.6f);
     private Color corDourado = new Color(0.98f, 0.75f, 0.14f, 1f);
     private Color corTextoClaro = new Color(0.92f, 0.97f, 1f, 1f);
-    private Color corTextoSuave = new Color(0.65f, 0.82f, 0.95f, 1f);
+    private Color corTextoSuave = new Color(0.65f, 0.77f, 0.71f, 1f);
 
     private Color corBotaoAzul = new Color(0.20f, 0.65f, 0.95f, 1f);
     private Color corBotaoVerde = new Color(0.29f, 0.87f, 0.50f, 1f);
@@ -947,6 +947,9 @@ public class OnlineMenuUI : MonoBehaviour {
         txt.fontStyle = estilo;
         txt.alignment = TextAnchor.MiddleCenter;
         txt.color = cor;
+        // Fredoka tem entrelinha alta: sem Overflow, uma linha que "não cabe" na caixa simplesmente não aparece
+        txt.verticalOverflow = VerticalWrapMode.Overflow;
+        if (tamanho >= 40) TemaUI.ContornoTexto(txt, TemaUI.SombraVerde, 3f);
         return txt;
     }
 

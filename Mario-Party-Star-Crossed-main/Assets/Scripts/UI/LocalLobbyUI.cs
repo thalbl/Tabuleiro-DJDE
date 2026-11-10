@@ -12,7 +12,7 @@ using System.IO;
 public class LocalLobbyUI : MonoBehaviour {
 
     // =================== CORES DO DESIGN ===================
-    private Color corFundoOverlay = new Color(0.04f, 0.14f, 0.09f, 0.98f);
+    private Color corFundoOverlay = new Color(0.04f, 0.14f, 0.09f, 1f); // opaco: tela própria, sem o menu vazando por trás
     private Color corCardFundo = new Color(0.12f, 0.25f, 0.18f, 0.95f);
     private Color corCardBorda = new Color(0.29f, 0.87f, 0.50f, 0.5f);
     private Color corTituloDourado = new Color(0.98f, 0.75f, 0.14f, 1f);
@@ -128,6 +128,9 @@ public class LocalLobbyUI : MonoBehaviour {
         txtT.fontStyle = FontStyle.Bold;
         txtT.alignment = TextAnchor.MiddleCenter;
         txtT.color = corTituloDourado;
+        // Fredoka tem entrelinha alta: sem Overflow, o título não cabia nos 50 px e não era desenhado
+        txtT.verticalOverflow = VerticalWrapMode.Overflow;
+        TemaUI.ContornoTexto(txtT, TemaUI.SombraVerde, 3f);
 
         // Subtítulo
         GameObject txtSubObj = new GameObject("TxtSub");
@@ -336,8 +339,8 @@ public class LocalLobbyUI : MonoBehaviour {
         GameObject lblTurnos = new GameObject("LblTurnos");
         lblTurnos.transform.SetParent(configPanel.transform, false);
         RectTransform rtLT = lblTurnos.AddComponent<RectTransform>();
-        rtLT.anchorMin = new Vector2(0.36f, 0.5f);
-        rtLT.anchorMax = new Vector2(0.36f, 0.5f);
+        rtLT.anchorMin = new Vector2(0.33f, 0.5f);
+        rtLT.anchorMax = new Vector2(0.33f, 0.5f);
         rtLT.sizeDelta = new Vector2(160, 40);
         rtLT.anchoredPosition = Vector2.zero;
         Text txtLT = lblTurnos.AddComponent<Text>();

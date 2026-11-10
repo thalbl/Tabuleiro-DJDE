@@ -141,16 +141,16 @@ public class TutorialManager : MonoBehaviour
             new SlideTutorial(
                 "%",
                 "Itens Estrategicos",
-                "BURACO NO BOLSO - Um rival perde " +
-                "4 passos de movimento!\n\n" +
+                "BURACO NO BOLSO - Um rival so rola " +
+                "de 1 a 3 no proximo turno!\n\n" +
                 "PORTAL MAGICO - Troca de lugar " +
                 "com outro jogador!\n\n" +
                 "VENTANIA - Sopra um rival para " +
                 "um lugar aleatorio do tabuleiro!\n\n" +
                 "LAMPADA MAGICA - Te leva direto " +
                 "ate a Estrela!\n\n" +
-                "SINO DO BOO - O Boo rouba moedas " +
-                "ou estrelas de um rival!",
+                "ESPIAO CORPORATIVO - Desvia moedas " +
+                "ou uma estrela de um rival!",
                 corVermelho
             ),
 

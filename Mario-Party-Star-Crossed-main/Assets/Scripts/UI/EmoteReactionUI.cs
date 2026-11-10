@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Sistema de Reações Rápidas e Emotes para os jogadores interagirem durante a partida.
-/// Utiliza as texturas de ícones oficiais do jogo (Estrela, Moeda, Cogumelo, Boo, Duelo)
+/// Utiliza as texturas de ícones do jogo em Resources/texture/icons
 /// e tipografia Fredoka, garantindo compatibilidade multiplataforma perfeita sem dependência
 /// de fontes de emojis Unicode de terceiros.
 /// </summary>

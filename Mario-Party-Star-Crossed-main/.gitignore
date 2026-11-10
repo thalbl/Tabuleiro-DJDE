@@ -76,3 +76,5 @@ Assets/.DS_Store
 # Save local do jogo (o jogo grava em Application.persistentDataPath; este caminho é legado do Editor)
 /[Aa]ssets/[Dd]ata/mario_party_save.dat
 /[Aa]ssets/[Dd]ata/mario_party_save.dat.meta
+/[Aa]ssets/[Dd]ata/caminho_sucesso_save.dat
+/[Aa]ssets/[Dd]ata/caminho_sucesso_save.dat.meta

@@ -63,7 +63,7 @@ public class MobileInputManager : MonoBehaviour {
         }
 
         // Definir FPS suave para mobile
-        Application.targetFrameRate = targetFps;
+        Application.targetFrameRate = Configuracoes.FpsAlvo; // definido no menu de configurações
     }
 
     void Update() {
@@ -88,7 +88,14 @@ public class MobileInputManager : MonoBehaviour {
     /// <summary>
     /// Retorna verdadeiro se o jogador tocou na tela ou clicou com o botão esquerdo.
     /// </summary>
+    /// <summary>Espaço, clique ou toque neste quadro — ignorado com o menu de configurações aberto.</summary>
+    public static bool ConfirmarPressionado() {
+        if (MenuConfiguracoes.Aberto) return false;
+        return Input.GetKeyDown(KeyCode.Space) || IsTouchOrClickDown();
+    }
+
     public static bool IsTouchOrClickDown() {
+        if (MenuConfiguracoes.Aberto) return false;
         if (Input.GetMouseButtonDown(0)) {
             return true;
         }

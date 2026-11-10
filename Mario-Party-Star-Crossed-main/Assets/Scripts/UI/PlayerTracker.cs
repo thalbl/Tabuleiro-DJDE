@@ -58,6 +58,7 @@ public class PlayerTracker : MonoBehaviour {
 
         // Criar Header com Tag e Nome do Jogador
         CriarHeaderJogador();
+        AplicarTema();
 
         // Tipografia moderna Fredoka
         Font fonteFredoka = Resources.Load<Font>("font/Fredoka-VariableFont_wdth,wght");
@@ -91,6 +92,58 @@ public class PlayerTracker : MonoBehaviour {
             placingColor.horizontalOverflow = HorizontalWrapMode.Overflow;
             placingColor.verticalOverflow = VerticalWrapMode.Overflow;
         }
+    }
+
+    private Text inicialAvatar;
+
+    /// <summary>Painel no padrão do TemaUI: fundo verde-escuro, números claros com sombra e avatar com a inicial.</summary>
+    private void AplicarTema() {
+        if (backPanel != null) {
+            TemaUI.EstilizarImagem(backPanel, TemaUI.Painel);
+            foreach (var o in backPanel.GetComponents<Outline>()) o.enabled = false;
+        }
+        // Colocação desenhada por cima do avatar
+        if (placingText != null) placingText.transform.SetAsLastSibling();
+        foreach (Text t in new[] { coinText, starText }) {
+            if (t == null) continue;
+            t.color = TemaUI.TextoClaro;
+            foreach (var o in t.GetComponents<Outline>()) o.enabled = false;
+            TemaUI.SombraTexto(t, 2f, 0.7f);
+        }
+        if (placingText != null) placingText.color = new Color(0, 0, 0, 0.55f); // sombra do texto colorido "Drop"
+
+        // Avatar: círculo na cor do jogador com a inicial do nome (antes era um quadrado preto sem imagem)
+        if (avatarFrame != null) avatarFrame.texture = TemaUI.Circulo.texture;
+        if (avatarPic != null) {
+            avatarPic.texture = TemaUI.Circulo.texture;
+            avatarPic.rectTransform.localRotation = Quaternion.identity;
+            var t = TemaUI.Texto(avatarPic.transform, "", 40, TemaUI.TextoClaro, FontStyle.Bold, TextAnchor.MiddleCenter);
+            TemaUI.Esticar(t.rectTransform);
+            t.transform.rotation = Quaternion.identity;
+            TemaUI.ContornoTexto(t, new Color(0, 0, 0, 0.45f), 2f);
+            inicialAvatar = t;
+        }
+    }
+
+    private void AtualizarAvatar() {
+        if (tracking == null || avatarPic == null) return;
+        Color cor = tracking.charColor();
+        avatarPic.color = Color.Lerp(cor, Color.black, 0.15f);
+        if (avatarFrame != null) avatarFrame.color = Color.Lerp(cor, Color.white, 0.35f);
+        if (inicialAvatar != null) {
+            string nome = tracking.charName();
+            inicialAvatar.text = Iniciais(nome);
+            inicialAvatar.transform.rotation = Quaternion.identity;
+        }
+    }
+
+    /// <summary>"Maria Silva" -> "MS"; "Jogador 1" -> "J1"; "Ana" -> "A".</summary>
+    private static string Iniciais(string nome) {
+        if (string.IsNullOrWhiteSpace(nome)) return "?";
+        string[] partes = nome.Trim().Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
+        string r = partes[0].Substring(0, 1).ToUpper();
+        if (partes.Length > 1) r += partes[partes.Length - 1].Substring(0, 1).ToUpper();
+        return r;
     }
 
     private void CriarHeaderJogador() {
@@ -195,7 +248,7 @@ public class PlayerTracker : MonoBehaviour {
         if (controller == 0) {
             // Humano Local
             tagTexto = GameMatchConfig.IsOnlineMatch ? "VOCÊ" : "LOCAL";
-            tagBgColor = new Color(0.13f, 0.55f, 0.25f, 1f); // Esmeralda
+            tagBgColor = TemaUI.Hex("#15803D"); // verde do tema
             outlineColor = new Color(0.29f, 0.87f, 0.50f, 0.6f);
         } else if (controller == 5) {
             // Remoto Online
@@ -205,7 +258,7 @@ public class PlayerTracker : MonoBehaviour {
         } else {
             // Bot / CPU
             tagTexto = "BOT";
-            tagBgColor = new Color(0.25f, 0.30f, 0.38f, 1f);
+            tagBgColor = TemaUI.Hex("#1E3A5F"); // azul-escuro
             outlineColor = new Color(0.40f, 0.48f, 0.58f, 0.5f);
         }
 
@@ -224,38 +277,35 @@ public class PlayerTracker : MonoBehaviour {
         coinText.text = (tracking.getCoins() < 10 ? "0" : "") + tracking.getCoins();
         starText.text = (tracking.getStars() < 10 ? "0" : "") + tracking.getStars();
 
-        switch (tracking.getTeam()) {
-            case 1:
-                backPanel.color = new Color(0.0f, 0.0f, 1.0f, 0.4f);
-                break;
-            case 2:
-                backPanel.color = new Color(1.0f, 0.0f, 0.0f, 0.4f);
-                break;
-            default:
-                backPanel.color = new Color(1.0f, 1.0f, 1.0f, 0.4f);
-                break;
+        if (backPanel != null) {
+            // Destaque da vez: fundo mais claro (contorno sobre painel translúcido "mancha" a cor)
+            bool vez = NetworkTurnManager.Instance != null && NetworkTurnManager.Instance.IsTurnoAtivo
+                       && NetworkTurnManager.Instance.JogadorAtivoPlayer != null
+                       && NetworkTurnManager.Instance.JogadorAtivoPlayer.state == tracking;
+            backPanel.color = vez ? TemaUI.Hex("#2F7A55", 0.94f) : TemaUI.Painel;
         }
+        AtualizarAvatar();
 
         switch (tracking.getPlacing()) {
             case 1:
-                placingText.text = "1st";
-                placingColor.text = "1st";
-                placingColor.color = new Color(1.0f, 0.75f, 0.0f, 1.0f);
+                placingText.text = "1º";
+                placingColor.text = "1º";
+                placingColor.color = TemaUI.Ouro;
                 break;
             case 2:
-                placingText.text = "2nd";
-                placingColor.text = "2nd";
-                placingColor.color = new Color(0.75f, 0.75f, 0.75f, 1.0f);
+                placingText.text = "2º";
+                placingColor.text = "2º";
+                placingColor.color = new Color(0.85f, 0.88f, 0.92f, 1f);
                 break;
             case 3:
-                placingText.text = "3rd";
-                placingColor.text = "3rd";
-                placingColor.color = new Color(0.67f, 0.4f, 0.0f, 1.0f);
+                placingText.text = "3º";
+                placingColor.text = "3º";
+                placingColor.color = new Color(0.85f, 0.55f, 0.25f, 1f);
                 break;
             default:
-                placingText.text = "4th";
-                placingColor.text = "4th";
-                placingColor.color = new Color(0.67f, 0.44f, 1.0f, 1.0f);
+                placingText.text = "4º";
+                placingColor.text = "4º";
+                placingColor.color = TemaUI.TextoSuave;
                 break;
         }
 

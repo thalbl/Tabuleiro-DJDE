@@ -107,6 +107,7 @@ public class BoardManager : MonoBehaviour {
         if (FindObjectOfType<TurnTimerUI>() == null) {
             gameObject.AddComponent<TurnTimerUI>();
         }
+        MenuConfiguracoes.Garantir(MenuConfiguracoes.Contexto.Partida);
     }
 
     void Update() {

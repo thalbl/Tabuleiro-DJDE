@@ -16,7 +16,8 @@ public static class MobileBuildTools {
     private static readonly string[] BuildScenes = new string[] {
         "Assets/Scenes/StartScene.unity",
         "Assets/Scenes/MVP.unity",
-        "Assets/Scenes/GameOverScene.unity"
+        "Assets/Scenes/GameOverScene.unity",
+        "Assets/Scenes/MapaRapido.unity"
     };
 
     [MenuItem("Mobile/1. Configurar Projeto para Mobile (Android)")]

@@ -243,7 +243,7 @@ public class UIManager : MonoBehaviour {
                 if (spinnerLoc > 7) {
                     spinnerLoc = 1;
                 }
-                if ((Input.GetKeyDown(KeyCode.Space) || MobileInputManager.IsTouchOrClickDown()) && windDown < -50) {
+                if (MobileInputManager.ConfirmarPressionado() && windDown < -50) {
                     HapticFeedback.Vibrate();
                     windDown = Random.Range(6, 9);
                 } else if (windDown <= 0 && mostRecentPrompt == "Spinner") {
@@ -581,7 +581,7 @@ public class UIManager : MonoBehaviour {
                     frameAvancoForcado = Time.frameCount;
                 }
                 if (frameAvancoForcado == Time.frameCount) return true;
-                return Input.GetKeyDown(KeyCode.Space) || MobileInputManager.IsTouchOrClickDown();
+                return MobileInputManager.ConfirmarPressionado();
             }
         } else if (controller == 5) {
             // JOGADOR REMOTO ONLINE
@@ -738,12 +738,12 @@ public class UIManager : MonoBehaviour {
             if (dImg != null) {
                 dImg.sprite = spriteArredondado;
                 dImg.type = Image.Type.Sliced;
-                dImg.color = new Color(0.06f, 0.09f, 0.15f, 0.94f);
+                dImg.color = TemaUI.Janela;
             }
 
             Outline dOutline = dialogue.GetComponent<Outline>();
             if (dOutline == null) dOutline = dialogue.AddComponent<Outline>();
-            dOutline.effectColor = new Color(0.98f, 0.75f, 0.14f, 0.70f); // Dourado
+            dOutline.effectColor = new Color(TemaUI.Ouro.r, TemaUI.Ouro.g, TemaUI.Ouro.b, 0.65f); // Dourado do tema
             dOutline.effectDistance = new Vector2(2.5f, -2.5f);
 
             Shadow dShadow = dialogue.GetComponent<Shadow>();
@@ -860,7 +860,7 @@ public class UIManager : MonoBehaviour {
             if (turnBg != null) {
                 turnBg.sprite = spriteArredondado;
                 turnBg.type = Image.Type.Sliced;
-                turnBg.color = new Color(0.04f, 0.12f, 0.08f, 0.94f); // Dark Slate Glass combinando com a HUD
+                turnBg.color = TemaUI.Janela;
             }
 
             Outline turnOutline = bgObj.GetComponent<Outline>();
@@ -883,7 +883,7 @@ public class UIManager : MonoBehaviour {
                 tMain.fontSize = 26;
                 tMain.fontStyle = FontStyle.Bold;
                 tMain.alignment = TextAnchor.MiddleCenter;
-                tMain.color = new Color(1f, 0.86f, 0.22f, 1f); // Dourado brilhante
+                tMain.color = new Color(0f, 0f, 0f, 0f); // invisível: o texto mostrado é o filho "Drop" (desenhado sobre o fundo)
                 tMain.horizontalOverflow = HorizontalWrapMode.Wrap;
                 tMain.verticalOverflow = VerticalWrapMode.Truncate;
             }
@@ -897,7 +897,19 @@ public class UIManager : MonoBehaviour {
             }
         }
         if (turnTrackerDrop != null) {
-            turnTrackerDrop.SetActive(false); // Desativa o texto de sombra duplicado legado
+            turnTrackerDrop.SetActive(true);
+            turnTrackerDrop.transform.SetAsLastSibling();
+            Text tDrop = turnTrackerDrop.GetComponent<Text>();
+            if (tDrop != null) {
+                TemaUI.EstilizarTexto(tDrop, 26, TemaUI.Ouro, FontStyle.Bold);
+                tDrop.alignment = TextAnchor.MiddleCenter;
+                tDrop.horizontalOverflow = HorizontalWrapMode.Overflow;
+                tDrop.verticalOverflow = VerticalWrapMode.Overflow;
+                RectTransform rtDrop = tDrop.rectTransform;
+                rtDrop.anchorMin = Vector2.zero; rtDrop.anchorMax = Vector2.one;
+                rtDrop.offsetMin = Vector2.zero; rtDrop.offsetMax = Vector2.zero;
+                rtDrop.localScale = Vector3.one;
+            }
         }
 
         // 4. Estilização do Contador de Passos (Spaces Left) com FONTE AUMENTADA
@@ -943,54 +955,20 @@ public class UIManager : MonoBehaviour {
     private void EstilizarBotaoOpcao(GameObject btnObj, Sprite sprite, Font fonte) {
         if (btnObj == null) return;
 
-        // Fundo arredondado elegante Dark Slate
-        Image img = btnObj.GetComponent<Image>();
-        if (img != null) {
-            img.sprite = sprite;
-            img.type = Image.Type.Sliced;
-            img.color = new Color(0.08f, 0.12f, 0.20f, 0.95f);
-        }
-
-        // Borda dourada refinada
-        Outline outline = btnObj.GetComponent<Outline>();
-        if (outline == null) outline = btnObj.AddComponent<Outline>();
-        outline.effectColor = new Color(0.98f, 0.75f, 0.14f, 0.85f);
-        outline.effectDistance = new Vector2(2f, -2f);
-
-        // Sombra para profundidade visual
-        Shadow shadow = btnObj.GetComponent<Shadow>();
-        if (shadow == null) shadow = btnObj.AddComponent<Shadow>();
-        shadow.effectColor = new Color(0f, 0f, 0f, 0.60f);
-        shadow.effectDistance = new Vector2(3.5f, -3.5f);
-
-        // Transição de cores interativa ao toque/hover
+        // Cartão claro do tema (mesmo estilo dos botões do menu principal): texto verde-escuro, foco dourado
         Button btn = btnObj.GetComponent<Button>();
         if (btn != null) {
-            btn.transition = Selectable.Transition.ColorTint;
-            ColorBlock cb = btn.colors;
-            cb.normalColor = new Color(0.08f, 0.12f, 0.20f, 0.95f);
-            cb.highlightedColor = new Color(0.18f, 0.28f, 0.44f, 1f);
-            cb.pressedColor = new Color(0.98f, 0.75f, 0.14f, 0.50f);
-            cb.selectedColor = new Color(0.18f, 0.28f, 0.44f, 1f);
-            btn.colors = cb;
+            TemaUI.EstilizarBotao(btn, TemaUI.EstiloBotao.Claro);
+        } else {
+            TemaUI.EstilizarImagem(btnObj.GetComponent<Image>(), TemaUI.Cartao);
         }
 
-        // Texto do Botão em negrito e com tamanho calibrado
         Text btnText = btnObj.GetComponentInChildren<Text>();
         if (btnText != null) {
-            if (fonte != null) btnText.font = fonte;
-            btnText.fontSize = 28;
-            btnText.fontStyle = FontStyle.Bold;
+            TemaUI.EstilizarTexto(btnText, 28, TemaUI.VerdeEscuro, FontStyle.Bold);
             btnText.alignment = TextAnchor.MiddleCenter;
-            btnText.color = new Color(0.96f, 0.98f, 1f, 1f);
             btnText.horizontalOverflow = HorizontalWrapMode.Wrap;
             btnText.verticalOverflow = VerticalWrapMode.Truncate;
-
-            Shadow tShadow = btnText.GetComponent<Shadow>();
-            if (tShadow == null) tShadow = btnText.gameObject.AddComponent<Shadow>();
-            tShadow.effectColor = new Color(0f, 0f, 0f, 0.75f);
-            tShadow.effectDistance = new Vector2(1.5f, -1.5f);
-
             RectTransform textRT = btnText.GetComponent<RectTransform>();
             if (textRT != null) {
                 textRT.anchorMin = Vector2.zero;

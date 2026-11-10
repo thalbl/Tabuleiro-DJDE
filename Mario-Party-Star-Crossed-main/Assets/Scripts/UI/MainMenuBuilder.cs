@@ -211,6 +211,14 @@ public class MainMenuBuilder : MonoBehaviour {
 
         // Botão Sair
         CriarBotaoMenu(container.transform, "Sair", yOffset, true, () => SairJogo());
+
+        // Configurações no canto superior direito (mantém a coluna de botões como está)
+        var cfg = TemaUI.Botao(safeAreaTransform != null ? safeAreaTransform : canvas.transform, "Configurações", TemaUI.EstiloBotao.Escuro,
+            () => MenuConfiguracoes.Garantir(MenuConfiguracoes.Contexto.MenuPrincipal).Abrir(), TemaUI.TamPequeno);
+        var cfgRT = (RectTransform)cfg.transform;
+        cfgRT.anchorMin = cfgRT.anchorMax = cfgRT.pivot = new Vector2(1f, 1f);
+        cfgRT.sizeDelta = new Vector2(250, 64);
+        cfgRT.anchoredPosition = new Vector2(-40, -36);
     }
 
     private void AbrirLobbyLocal() {

@@ -40,7 +40,7 @@ public static class HapticFeedback {
     }
 
     /// <summary>
-    /// Vibração ao colidir ou sofrer penalidade em casas negativas (ex: Bowser).
+    /// Vibração ao colidir ou sofrer penalidade em casas negativas (ex: casa vermelha).
     /// </summary>
     public static void VibrateImpact() {
         Vibrate();

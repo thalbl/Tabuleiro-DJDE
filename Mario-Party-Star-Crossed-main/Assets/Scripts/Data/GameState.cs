@@ -129,20 +129,61 @@ public class GameState {
         turnsCompleted += 1;
     }
 
+    public const string NomeArquivoSave = "caminho_sucesso_save.dat";
+    private const string NomeArquivoSaveLegado = "mario_party_save.dat";
+    private const string ChaveMigracaoFeita = "SaveLegadoMigrado";
+
+    // Mapa da partida salva fica no próprio save (as PlayerPrefs mudam de lugar junto com empresa/produto)
+    [SerializeField] protected string cenaMapa;
+
     public static string SaveFilePath {
         get {
-            return Path.Combine(Application.persistentDataPath, "mario_party_save.dat");
+            return Path.Combine(Application.persistentDataPath, NomeArquivoSave);
         }
     }
 
+    // Onde o save podia estar antes da mudança de identidade do projeto
+    private static IEnumerable<string> CaminhosSaveLegado() {
+        yield return Path.Combine(Application.persistentDataPath, NomeArquivoSaveLegado);
+        // PC: persistentDataPath = .../LocalLow/<empresa>/<produto>; antes era DefaultCompany/My project (1)
+        DirectoryInfo raiz = Directory.GetParent(Application.persistentDataPath)?.Parent;
+        if (raiz != null) {
+            yield return Path.Combine(raiz.FullName, "DefaultCompany", "My project (1)", NomeArquivoSaveLegado);
+        }
+        yield return Path.Combine(Application.dataPath, "Data", NomeArquivoSaveLegado);
+    }
+
+    /// <summary>
+    /// Copia (uma única vez) o save do nome/pasta antigos para o caminho atual.
+    /// Roda uma vez só para que "Novo jogo" (que apaga o save) não traga o save antigo de volta.
+    /// </summary>
+    public static void MigrarSaveLegado() {
+        if (PlayerPrefs.GetInt(ChaveMigracaoFeita, 0) == 1) return;
+        try {
+            if (!File.Exists(SaveFilePath)) {
+                foreach (string antigo in CaminhosSaveLegado()) {
+                    if (File.Exists(antigo)) {
+                        Directory.CreateDirectory(Path.GetDirectoryName(SaveFilePath));
+                        File.Copy(antigo, SaveFilePath);
+                        Debug.Log($"[GameState] Save migrado de {antigo} para {SaveFilePath}");
+                        break;
+                    }
+                }
+            }
+        } catch (System.Exception e) {
+            Debug.LogWarning($"[GameState] Não foi possível migrar o save antigo: {e.Message}");
+        }
+        PlayerPrefs.SetInt(ChaveMigracaoFeita, 1);
+        PlayerPrefs.Save();
+    }
+
     public static bool HasSaveGame() {
-        if (File.Exists(SaveFilePath)) return true;
-        // Fallback legado para PC/Editor
-        string legacyPath = Application.dataPath + "/Data/mario_party_save.dat";
-        return File.Exists(legacyPath);
+        MigrarSaveLegado();
+        return File.Exists(SaveFilePath);
     }
 
     public static void DeleteSaveGame() {
+        MigrarSaveLegado(); // marca a migração como feita antes de apagar
         try {
             if (File.Exists(SaveFilePath)) {
                 File.Delete(SaveFilePath);
@@ -150,18 +191,12 @@ public class GameState {
         } catch (System.Exception e) {
             Debug.LogWarning($"[GameState] Erro ao deletar save em {SaveFilePath}: {e.Message}");
         }
-
-        try {
-            string legacyPath = Application.dataPath + "/Data/mario_party_save.dat";
-            if (File.Exists(legacyPath)) {
-                File.Delete(legacyPath);
-            }
-        } catch {}
     }
 
     public string SaveGame() {
         string activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
         if (!string.IsNullOrEmpty(activeScene) && activeScene != "StartScene" && activeScene != "GameOverScene") {
+            cenaMapa = activeScene;
             PlayerPrefs.SetString("SavedGame_MapScene", activeScene);
             PlayerPrefs.Save();
         }
@@ -175,275 +210,19 @@ public class GameState {
     }
 
     public static string GetSavedMapScene() {
+        // Preferência: o mapa gravado no próprio save; depois PlayerPrefs; por fim o MVP
+        GameState salvo = LoadGame();
+        if (salvo != null && !string.IsNullOrEmpty(salvo.cenaMapa)) return salvo.cenaMapa;
         string scene = PlayerPrefs.GetString("SavedGame_MapScene", "MVP");
         return string.IsNullOrEmpty(scene) ? "MVP" : scene;
     }
 
     public static GameState LoadGame() {
+        MigrarSaveLegado();
         string filePath = SaveFilePath;
-        if (!File.Exists(filePath)) {
-            string legacyPath = Application.dataPath + "/Data/mario_party_save.dat";
-            if (File.Exists(legacyPath)) {
-                filePath = legacyPath;
-            }
-        }
-
         if (File.Exists(filePath)) {
             return JsonUtility.FromJson<GameState>(File.ReadAllText(filePath));
         }
         return null;
-    }
-}
-
-[System.Serializable]
-public abstract class ClassicStarGameState: GameState {
-    protected int starLocation;
-
-    public ClassicStarGameState(PlayerState p1, PlayerState p2, PlayerState p3, PlayerState p4, int maxTurn, int bonusStars, bool halfwayThere, bool hiddenBlocksPresent, bool consolationCoins, List<int> handicaps, List<bool> minigames) : base(p1, p2, p3, p4, maxTurn, bonusStars, halfwayThere, hiddenBlocksPresent, consolationCoins, handicaps, minigames) {
-        NewStarPos(new List<int>());
-    }
-
-    public void NewStarPos(List<int> blocked) {
-        List<int> possibleLocs = new List<int>(StarLocationIDs());
-        possibleLocs.RemoveAll(i => blocked.Contains(i));
-        starLocation = possibleLocs[GameRng.Range(0, possibleLocs.Count)];
-    }
-
-    public abstract List<int> StarLocationIDs();
-}
-
-[System.Serializable]
-public class FantasticFactoryGameState: ClassicStarGameState {
-    public FantasticFactoryGameState(PlayerState p1, PlayerState p2, PlayerState p3, PlayerState p4, int maxTurn, int bonusStars, bool halfwayThere, bool hiddenBlocksPresent, bool consolationCoins, List<int> handicaps, List<bool> minigames) : base(p1, p2, p3, p4, maxTurn, bonusStars, halfwayThere, hiddenBlocksPresent, consolationCoins, handicaps, minigames) {}
-
-    public override List<int> StarLocationIDs() {
-        // TODO: Star Locations
-        return new List<int>() {0};
-    }
-}
-
-[System.Serializable]
-public class SunshineShorelineGameState: ClassicStarGameState {
-    private bool westernSwapJunctionShortPath;
-    private bool easternSwapJunctionShortPath;
-
-    public SunshineShorelineGameState(PlayerState p1, PlayerState p2, PlayerState p3, PlayerState p4, int maxTurn, int bonusStars, bool halfwayThere, bool hiddenBlocksPresent, bool consolationCoins, List<int> handicaps, List<bool> minigames) : base(p1, p2, p3, p4, maxTurn, bonusStars, halfwayThere, hiddenBlocksPresent, consolationCoins, handicaps, minigames) {
-        this.westernSwapJunctionShortPath = true;
-        this.easternSwapJunctionShortPath = true;
-    }
-
-    public override List<int> StarLocationIDs() {
-        // TODO: Star Locations
-        return new List<int>() {0};
-    }
-}
-
-[System.Serializable]
-public class MarvelousMetroGameState: ClassicStarGameState {
-    private int starPrice;
-    private int nabbitPos;
-
-    public MarvelousMetroGameState(PlayerState p1, PlayerState p2, PlayerState p3, PlayerState p4, int maxTurn, int bonusStars, bool halfwayThere, bool hiddenBlocksPresent, bool consolationCoins, List<int> handicaps, List<bool> minigames) : base(p1, p2, p3, p4, maxTurn, bonusStars, halfwayThere, hiddenBlocksPresent, consolationCoins, handicaps, minigames) {
-        this.starPrice = 10;
-        this.nabbitPos = -1;
-    }
-
-    public override List<int> StarLocationIDs() {
-        // TODO: Star Locations
-        return new List<int>() {0};
-    }
-}
-
-[System.Serializable]
-public class NuttyNebulaGameState: GameState {
-    public NuttyNebulaGameState(PlayerState p1, PlayerState p2, PlayerState p3, PlayerState p4, int maxTurn, int bonusStars, bool halfwayThere, bool hiddenBlocksPresent, bool consolationCoins, List<int> handicaps, List<bool> minigames) : base(p1, p2, p3, p4, maxTurn, bonusStars, halfwayThere, hiddenBlocksPresent, consolationCoins, handicaps, minigames) {}
-}
-
-[System.Serializable]
-public class TreasureTempleGameState: GameState {
-    private List<int> grandTempleInvestments;
-    private List<int> northernTempleInvestments;
-    private List<int> centralTempleInvestments;
-    private List<int> westernTempleInvestments;
-    private List<int> easternTempleInvestments;
-    private bool westernWhompBlocksInternal;
-    private bool easternWhompBlocksInternal;
-    private int ancientCountdown;
-
-    public TreasureTempleGameState(PlayerState p1, PlayerState p2, PlayerState p3, PlayerState p4, int maxTurn, int bonusStars, bool halfwayThere, bool hiddenBlocksPresent, bool consolationCoins, List<int> handicaps, List<bool> minigames) : base(p1, p2, p3, p4, maxTurn, bonusStars, halfwayThere, hiddenBlocksPresent, consolationCoins, handicaps, minigames) {
-        this.grandTempleInvestments = new List<int> { 0, 0, 0, 0 };
-        this.northernTempleInvestments = new List<int> { 0, 0, 0, 0 };
-        this.centralTempleInvestments = new List<int> { 0, 0, 0, 0 };
-        this.westernTempleInvestments = new List<int> { 0, 0, 0, 0 };
-        this.easternTempleInvestments = new List<int> { 0, 0, 0, 0 };
-        this.westernWhompBlocksInternal = false;
-        this.easternWhompBlocksInternal = false;
-        this.ancientCountdown = 6;
-    }
-}
-
-[System.Serializable]
-public class FlowerFestivalGameState: GameState {
-    private int floatLocationA;
-    private int floatLocationB;
-    private int floatLocationC;
-    private List<string> senbonbikiPool;
-
-    public FlowerFestivalGameState(PlayerState p1, PlayerState p2, PlayerState p3, PlayerState p4, int maxTurn, int bonusStars, bool halfwayThere, bool hiddenBlocksPresent, bool consolationCoins, List<int> handicaps, List<bool> minigames) : base(p1, p2, p3, p4, maxTurn, bonusStars, halfwayThere, hiddenBlocksPresent, consolationCoins, handicaps, minigames) {
-        // TODO: Float Location
-        this.senbonbikiPool = new List<string>() { "None", "None", "None", "Dueling Glove", "Bowser Suit", "Magic Mushroom", "10 Coins", "Star" };
-    }
-}
-
-[System.Serializable]
-public class TwistedTowersGameState: ClassicStarGameState {
-    private int graveyardPortraitTarget;
-    private int startingPortraitTarget;
-    private int midlevelPortraitTarget;
-    private int roofPortraitTarget;
-    private int kamekPortraitTarget;
-    // 0: Blue
-    // 1: Red
-    // 2: Lucky
-    // 3: Duel
-    // 4: Bowser
-    // 5: Chance
-    private static List<int> magicSpaceOdds = new List<int>() {0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5};
-    private int magicSpaces;
-
-    public TwistedTowersGameState(PlayerState p1, PlayerState p2, PlayerState p3, PlayerState p4, int maxTurn, int bonusStars, bool halfwayThere, bool hiddenBlocksPresent, bool consolationCoins, List<int> handicaps, List<bool> minigames) : base(p1, p2, p3, p4, maxTurn, bonusStars, halfwayThere, hiddenBlocksPresent, consolationCoins, handicaps, minigames) {
-        this.magicSpaces = -1;
-        this.shufflePortraits();
-        this.randomizeMagicSpaces();
-    }
-
-    public void randomizeMagicSpaces() {
-        int neo = magicSpaceOdds[GameRng.Range(0, magicSpaceOdds.Count)];
-        if (neo == magicSpaces) {
-            neo += GameRng.Range(1, 4);
-            if (neo >= 6) {
-                neo -= 5;
-            }
-        }
-        this.magicSpaces = neo;
-    }
-
-    public void shufflePortraits() {
-        List<int> locsAvailable = new List<int>() {0, 1, 2, 3, 4};
-        this.graveyardPortraitTarget = locsAvailable[GameRng.Range(0, locsAvailable.Count)];
-        locsAvailable.Remove(this.graveyardPortraitTarget);
-        this.startingPortraitTarget = locsAvailable[GameRng.Range(0, locsAvailable.Count)];
-        locsAvailable.Remove(this.startingPortraitTarget);
-        this.midlevelPortraitTarget = locsAvailable[GameRng.Range(0, locsAvailable.Count)];
-        locsAvailable.Remove(this.midlevelPortraitTarget);
-        this.roofPortraitTarget = locsAvailable[GameRng.Range(0, locsAvailable.Count)];
-        locsAvailable.Remove(this.roofPortraitTarget);
-        this.kamekPortraitTarget = locsAvailable[GameRng.Range(0, locsAvailable.Count)];
-        locsAvailable.Remove(this.kamekPortraitTarget);
-
-        if (this.graveyardPortraitTarget == 0) {
-            locsAvailable.Add(0);
-            this.graveyardPortraitTarget = -1;
-        }
-        if (this.startingPortraitTarget == 0) {
-            locsAvailable.Add(0);
-            this.startingPortraitTarget = -1;
-        }
-        if (this.midlevelPortraitTarget == 1) {
-            locsAvailable.Add(1);
-            this.midlevelPortraitTarget = -1;
-        }
-        if (this.roofPortraitTarget == 2 || roofPortraitTarget == 3) {
-            locsAvailable.Add(roofPortraitTarget);
-            this.roofPortraitTarget = -1;
-        }
-        if (this.kamekPortraitTarget == 4) {
-            locsAvailable.Add(4);
-            this.kamekPortraitTarget = -1;
-        }
-        if (locsAvailable.Count == 1) {
-            if (locsAvailable[0] == 4) {
-                locsAvailable.Add(this.roofPortraitTarget);
-                this.roofPortraitTarget = -1;
-            } else {
-                locsAvailable.Add(this.kamekPortraitTarget);
-                this.kamekPortraitTarget = -1;
-            }
-        }
-
-        if (this.graveyardPortraitTarget == -1) {
-            this.graveyardPortraitTarget = locsAvailable[locsAvailable.Count - 1];
-        }
-        if (this.startingPortraitTarget == -1) {
-            this.startingPortraitTarget = locsAvailable[locsAvailable.Count - 1];
-        }
-        if (this.midlevelPortraitTarget == -1) {
-            this.midlevelPortraitTarget = locsAvailable[locsAvailable.Count - 1];
-        }
-        if (this.roofPortraitTarget == -1) {
-            this.roofPortraitTarget = locsAvailable[locsAvailable.Count - 1];
-        }
-        if (this.kamekPortraitTarget == -1) {
-            this.kamekPortraitTarget = locsAvailable[locsAvailable.Count - 1];
-        }
-    }
-
-    public override List<int> StarLocationIDs() {
-        // TODO: Star Locations
-        return new List<int>() {0};
-    }
-}
-
-[System.Serializable]
-public class CalamitousCliffsGameState: GameState {
-    private bool starAvailable;
-
-    public CalamitousCliffsGameState(PlayerState p1, PlayerState p2, PlayerState p3, PlayerState p4, int maxTurn, int bonusStars, bool halfwayThere, bool hiddenBlocksPresent, bool consolationCoins, List<int> handicaps, List<bool> minigames) : base(p1, p2, p3, p4, maxTurn, bonusStars, halfwayThere, hiddenBlocksPresent, consolationCoins, handicaps, minigames) {
-        this.starAvailable = true;
-    }
-}
-
-[System.Serializable]
-public class FutureDreamGameState: ClassicStarGameState {
-    public FutureDreamGameState(PlayerState p1, PlayerState p2, PlayerState p3, PlayerState p4, int maxTurn, int bonusStars, bool halfwayThere, bool hiddenBlocksPresent, bool consolationCoins, List<int> handicaps, List<bool> minigames) : base(p1, p2, p3, p4, maxTurn, bonusStars, halfwayThere, hiddenBlocksPresent, consolationCoins, handicaps, minigames) {}
-
-    public override List<int> StarLocationIDs() {
-        // TODO: Star Locations
-        return new List<int>() {0};
-    }
-}
-
-[System.Serializable]
-public class CreepyCavernGameState: ClassicStarGameState {
-    private bool whompKingBlocksEast;
-    // 0: Mushroom
-    // 1: Poison Mushroom
-    // 2: Golden Drink
-    // 3: Skeleton Key
-    private int kingDesire;
-
-    public CreepyCavernGameState(PlayerState p1, PlayerState p2, PlayerState p3, PlayerState p4, int maxTurn, int bonusStars, bool halfwayThere, bool hiddenBlocksPresent, bool consolationCoins, List<int> handicaps, List<bool> minigames) : base(p1, p2, p3, p4, maxTurn, bonusStars, halfwayThere, hiddenBlocksPresent, consolationCoins, handicaps, minigames) {
-        this.whompKingBlocksEast = true;
-        this.kingDesire = GameRng.Range(0, 3);
-    }
-
-    public override List<int> StarLocationIDs() {
-        // TODO: Star Locations
-        return new List<int>() {0};
-    }
-}
-
-[System.Serializable]
-public class SnowflakeLakeGameState: GameState {
-    public SnowflakeLakeGameState(PlayerState p1, PlayerState p2, PlayerState p3, PlayerState p4, int maxTurn, int bonusStars, bool halfwayThere, bool hiddenBlocksPresent, bool consolationCoins, List<int> handicaps, List<bool> minigames) : base(p1, p2, p3, p4, maxTurn, bonusStars, halfwayThere, hiddenBlocksPresent, consolationCoins, handicaps, minigames) {}
-}
-
-[System.Serializable]
-public class GreedyGalaGameState: ClassicStarGameState {
-    public GreedyGalaGameState(PlayerState p1, PlayerState p2, PlayerState p3, PlayerState p4, int maxTurn, int bonusStars, bool halfwayThere, bool hiddenBlocksPresent, bool consolationCoins, List<int> handicaps, List<bool> minigames) : base(p1, p2, p3, p4, maxTurn, bonusStars, halfwayThere, hiddenBlocksPresent, consolationCoins, handicaps, minigames) {}
-
-    public override List<int> StarLocationIDs() {
-        // TODO: Star Locations
-        return new List<int>() {0};
     }
 }

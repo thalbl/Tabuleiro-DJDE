@@ -108,7 +108,7 @@ public class DiceBlock : MonoBehaviour {
         bool touchTriggered = isHumanTurn && MobileInputManager.IsTouchOrClickDown();
 
         // Se for a vez do jogador local, ele dispara por Espaço/Toque. Se for Bot, dispara por tempo
-        if (((Input.GetKeyDown(KeyCode.Space) || touchTriggered) && isHumanTurn) || (comTimer >= 1.5f && isBotTurn)) {
+        if (((MobileInputManager.ConfirmarPressionado() || touchTriggered) && isHumanTurn) || (comTimer >= 1.5f && isBotTurn)) {
             TriggerRoll();
         }
     }
@@ -124,7 +124,7 @@ public class DiceBlock : MonoBehaviour {
         }
         bool isHumanTurn = podeInteragir && (ctrl == 0 || ctrl == 5);
 
-        if (isHumanTurn && rend != null && rend.enabled) {
+        if (isHumanTurn && rend != null && rend.enabled && !MenuConfiguracoes.Aberto) {
             TriggerRoll();
         }
     }

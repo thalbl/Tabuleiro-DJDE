@@ -18,7 +18,7 @@ public class Player : MonoBehaviour {
 
     [Tooltip("Movement Speed of Player.")]
     public float moveSpeed = 1.0f;
-    [Tooltip("The list of dice prefabs; Normal, Double, Triple, Magic, Poison, Bowser.")]
+    [Tooltip("Prefabs de dado na ordem de setMovement: Normal, Duplo, Triplo, Mágico, Furado, Executivo.")]
     public List<GameObject> dicePrefabs;
     [Tooltip("BoardManager of this board.")]
     public BoardManager game;
@@ -117,28 +117,30 @@ public class Player : MonoBehaviour {
                     }
                     
                     usedItem = true;
-                    switch (ui.MostRecentDialogueAnswer()) {
-                        case "Cofrinho": // Mushroom -> Cofrinho
+                    // Decide pelo enum, não pelo nome exibido: renomear um item não quebra mais o uso
+                    int indiceItem = ItemSpace.itemNames.IndexOf(ui.MostRecentDialogueAnswer());
+                    switch (indiceItem >= 0 ? (BoardItem)indiceItem : (BoardItem)(-1)) {
+                        case BoardItem.Mushroom:
                             state.setMovement(1);
                             state.removeItem(BoardItem.Mushroom);
-                            ui.Dialogue("Você usou o Cofrinho! Avança 1 casa.", true);
+                            ui.Dialogue("Você usou o Cofrinho! Neste turno você rola 2 dados.", true);
                             break;
-                        case "Super Dado": // Golden Mushroom -> Super Dado
+                        case BoardItem.GoldenMushroom:
                             state.setMovement(2);
                             state.removeItem(BoardItem.GoldenMushroom);
-                            ui.Dialogue("Você usou o Super Dado! Avança 2 casas!", true);
+                            ui.Dialogue("Você usou o Super Dado! Neste turno você rola 3 dados!", true);
                             break;
-                        case "Foguete": // Magic Mushroom -> Foguete
+                        case BoardItem.MagicMushroom:
                             state.setMovement(3);
                             state.removeItem(BoardItem.MagicMushroom);
-                            ui.Dialogue("Você usou o Foguete! Avança 3 casas!", true);
+                            ui.Dialogue("Você usou o Foguete! Escolha o número do dado (1 a 10)!", true);
                             break;
-                        case "Fantasia do Bowser": // Bowser Suit -> Fantasia do Bowser
+                        case BoardItem.BowserSuit:
                             state.setMovement(5);
                             state.removeItem(BoardItem.BowserSuit);
-                            ui.Dialogue("Você vestiu a Fantasia do Bowser! Avança 5 casas!", true);
+                            ui.Dialogue("Você vestiu o Traje de Executivo! Rola 5 dados de 1 a 3 e cobra 20 Moedas de quem alcançar!", true);
                             break;
-                        case "Buraco no Bolso": // Poison Mushroom -> Buraco no Bolso
+                        case BoardItem.PoisonMushroom:
                             ui.Dialogue(Prompts.AlvoBuracoNoBolso,new List<string>() { game.p1.state.charName(), game.p2.state.charName(), game.p3.state.charName(), game.p4.state.charName(), "Cancelar" }, true);
                             yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                             if (ui.MostRecentDialogueAnswer() == game.p1.state.charName()) {
@@ -165,7 +167,7 @@ public class Player : MonoBehaviour {
                                 usedItem = false;
                             }
                             break;
-                        case "Ventania": // Tweester Totem -> Ventania
+                        case BoardItem.TweesterTotem:
                             ui.Dialogue(Prompts.AlvoVentania,new List<string>() { game.p1.state.charName(), game.p2.state.charName(), game.p3.state.charName(), game.p4.state.charName(), "Cancelar" }, true);
                             yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                             if (ui.MostRecentDialogueAnswer() == game.p1.state.charName()) {
@@ -192,7 +194,7 @@ public class Player : MonoBehaviour {
                                 usedItem = false;
                             }
                             break;
-                        case "Portal Mágico": // Warp Pipe -> Portal Mágico
+                        case BoardItem.WarpPipe:
                             // Mostrar confirmação antes de usar
                             ui.Dialogue("Confirmar Uso", "Usar o Portal Mágico para trocar de lugar com outro jogador?", new List<string>() {"Usar", "Cancelar"}, true);
                             yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
@@ -247,7 +249,7 @@ public class Player : MonoBehaviour {
                                 usedItem = false;
                             }
                             break;
-                        case "Baú do Tesouro": // Plunder Chest -> Baú do Tesouro
+                        case BoardItem.PlunderChest:
                             List<string> theftChoices = new List<string>();
                             if (game.p1.state.getItems().Count > 0 && game.MyPlayerNumber(this) != 1) {
                                 theftChoices.Add(game.p1.state.charName());
@@ -307,35 +309,34 @@ public class Player : MonoBehaviour {
                                 yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                             }
                             break;
-                        case "Moeda Dobrada": // Double Star Card -> Moeda Dobrada
+                        case BoardItem.DoubleStarCard:
                             state.changeCoins(30);
                             state.removeItem(BoardItem.DoubleStarCard);
                             ui.Dialogue("Moeda Dobrada", "Você recebeu +30 Moedas!", true);
                             yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                             break;
-                        case "Chave Secreta": // Skeleton Key -> Chave Secreta
+                        case BoardItem.SkeletonKey:
                             // Resgatar a chave a consome (antes ficava no bolso e gerava +15 todo turno)
                             state.changeCoins(15);
                             state.removeItem(BoardItem.SkeletonKey);
                             ui.Dialogue("Chave Secreta", "Você vendeu a Chave Secreta por +15 Moedas!", true);
                             yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                             break;
-                        case "Escudo Protetor": // Gaddlight -> Escudo Protetor
+                        case BoardItem.Gaddlight:
                             // Resgatar o escudo o consome (antes ficava no bolso e gerava +20 todo turno)
                             state.changeCoins(20);
                             state.removeItem(BoardItem.Gaddlight);
                             ui.Dialogue("Escudo Protetor", "Você resgatou o Escudo Protetor por +20 Moedas!\n(Sem ele, você não está mais protegido contra roubos.)", true);
                             yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                             break;
-                        case "Presente Surpresa": // Chomp Treat -> Presente Surpresa
+                        case BoardItem.ChompTreat:
                             state.changeCoins(25);
                             state.removeItem(BoardItem.ChompTreat);
                             ui.Dialogue("Presente Surpresa", "Você ganhou +25 Moedas!", true);
                             yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                             break;
-                        case "Sino do Boo":
-                            state.removeItem(BoardItem.BooBell);
-                            ui.Dialogue("Boo", "Ueeeheehee! Adoro causar confusão! Vou roubar algo de um dos seus rivais!", false);
+                        case BoardItem.BooBell:
+                            ui.Dialogue("Espião Corporativo", "Informação vale ouro. Posso desviar algo de um dos seus rivais!", false);
                             yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                             yield return new WaitForSeconds(0.1f);
                             bool stealingStars = false;
@@ -366,7 +367,7 @@ public class Player : MonoBehaviour {
                                 starTheftChoices.Add(game.p4.state.charName());
                             }
                             if (state.getCoins() >= 40 && starTheftChoices.Count > 0) {
-                                ui.Dialogue("Boo", "Roubar Moedas é de graça, mas Estrelas custam 40 Moedas!", new List<string>() {"Quero Moedas!", "Quero Estrelas!", "Não, obrigado!"}, false);
+                                ui.Dialogue("Espião Corporativo", "Desviar Moedas sai de graça, mas uma Estrela custa 40 Moedas!", new List<string>() {"Quero Moedas!", "Quero Estrelas!", "Não, obrigado!"}, false);
                                 yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                                 yield return new WaitForSeconds(0.1f);
                                 if (ui.MostRecentDialogueAnswer() == "Quero Estrelas!") {
@@ -374,20 +375,20 @@ public class Player : MonoBehaviour {
                                 }
                                 if (ui.MostRecentDialogueAnswer() != "Não, obrigado!") {
                                     if (stealingStars) {
-                                        ui.Dialogue("Boo", "De quem eu devo roubar?", starTheftChoices, false);
+                                        ui.Dialogue("Espião Corporativo", "De quem eu desvio?", starTheftChoices, false);
                                     } else {
-                                        ui.Dialogue("Boo", "De quem eu devo roubar?", coinTheftChoices, false);
+                                        ui.Dialogue("Espião Corporativo", "De quem eu desvio?", coinTheftChoices, false);
                                     }
                                     yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                                     yield return new WaitForSeconds(0.1f);
                                 }
                             } else if (coinTheftChoices.Count > 0) {
                                 coinTheftChoices.Add("Não, obrigado!");
-                                ui.Dialogue("Boo", "De quem você quer que eu roube Moedas?", coinTheftChoices, false);
+                                ui.Dialogue("Espião Corporativo", "De quem você quer que eu desvie Moedas?", coinTheftChoices, false);
                                 yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                                 yield return new WaitForSeconds(0.1f);
                             } else {
-                                ui.Dialogue("Boo", "Hmm... ninguém tem nada que valha a pena roubar.", false);
+                                ui.Dialogue("Espião Corporativo", "Hmm... ninguém tem nada que valha a pena. Fica para a próxima.", false);
                                 yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                                 yield return new WaitForSeconds(0.1f);
                             }
@@ -400,39 +401,43 @@ public class Player : MonoBehaviour {
                                     break;
                                 }
                             }
+                            if (booTarget == null) {
+                                usedItem = false; // desistiu: o item continua no bolso
+                            }
                             if (booTarget != null) {
-                                ui.Dialogue("Boo", "Lá vou eu!", false);
+                                state.removeItem(BoardItem.BooBell);
+                                ui.Dialogue("Espião Corporativo", "Deixa comigo!", false);
                                 yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                                 yield return new WaitForSeconds(0.1f);
                                 if (booTarget.state.hasItem(BoardItem.Gaddlight)) {
                                     booTarget.state.removeItem(BoardItem.Gaddlight);
-                                    ui.Dialogue("Boo", "Argh! Esse jogador tem um Escudo Protetor! Fui!", true);
+                                    ui.Dialogue("Espião Corporativo", "Esse jogador tinha um Escudo Protetor! A operação falhou.", true);
                                     yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                                     yield return new WaitForSeconds(0.1f);
                                 } else if (stealingStars) {
                                     state.changeCoins(-40);
                                     state.changeStars(1);
                                     booTarget.state.changeStars(-1);
-                                    ui.Dialogue("Boo", "Roubei uma Estrela! Sou malvado demais!", false);
+                                    ui.Dialogue("Espião Corporativo", "Missão cumprida: desviei uma Estrela!", false);
                                     yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                                     yield return new WaitForSeconds(0.1f);
-                                    ui.Dialogue("Boo", "Ueeeheehee! Volte sempre!", true);
+                                    ui.Dialogue("Espião Corporativo", "Foi um prazer fazer negócios.", true);
                                     yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                                     yield return new WaitForSeconds(0.1f);
                                 } else {
                                     int coinsToSteal = GameRng.Range(Mathf.Max(1, booTarget.state.getCoins() / 4), Mathf.Max(2, booTarget.state.getCoins() / 2));
                                     state.changeCoins(coinsToSteal);
                                     booTarget.state.changeCoins(-1 * coinsToSteal);
-                                    ui.Dialogue("Boo", "Ueheehee! Roubei " + coinsToSteal + " Moedas!", false);
+                                    ui.Dialogue("Espião Corporativo", "Missão cumprida: desviei " + coinsToSteal + " Moedas!", false);
                                     yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                                     yield return new WaitForSeconds(0.1f);
-                                    ui.Dialogue("Boo", "Ueeeheehee! Volte sempre!", true);
+                                    ui.Dialogue("Espião Corporativo", "Foi um prazer fazer negócios.", true);
                                     yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                                     yield return new WaitForSeconds(0.1f);
                                 }
                             }
                             break;
-                        case "Bebida Dourada": {
+                        case BoardItem.GoldenDrink: {
                             state.removeItem(BoardItem.GoldenDrink);
                             int bonus = 10 + 3 * state.GetCareerLevel();
                             state.changeCoins(bonus);
@@ -440,29 +445,29 @@ public class Player : MonoBehaviour {
                             yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
                             break;
                         }
-                        case "Mochila Mágica":
+                        case BoardItem.VacPack:
                             state.removeItem(BoardItem.VacPack);
                             yield return StartCoroutine(UsarMochilaMagica());
                             break;
-                        case "Luva de Duelo": {
+                        case BoardItem.DuelingGlove: {
                             bool concluiu = false;
                             yield return StartCoroutine(UsarLuvaDeDuelo(ok => concluiu = ok));
                             if (!concluiu) usedItem = false;
                             break;
                         }
-                        case "Apito do Chomp":
+                        case BoardItem.ChompCall:
                             state.removeItem(BoardItem.ChompCall);
-                            yield return StartCoroutine(UsarApitoDoChomp());
+                            yield return StartCoroutine(UsarAgenciaDeCobranca());
                             break;
-                        case "Lâmpada Mágica": {
+                        case BoardItem.MagicLamp: {
                             bool concluiu = false;
                             yield return StartCoroutine(UsarLampadaMagica(ok => concluiu = ok));
                             if (!concluiu) usedItem = false;
                             break;
                         }
-                        case "Apito do Wiggler":
+                        case BoardItem.WigglerWhistle:
                             state.removeItem(BoardItem.WigglerWhistle);
-                            yield return StartCoroutine(UsarApitoDoWiggler());
+                            yield return StartCoroutine(UsarBilhetePremiado());
                             break;
                         default:
                             usedItem = false;
@@ -638,7 +643,7 @@ public class Player : MonoBehaviour {
         myCam.enabled = false;
 
         yield return null; // ignora o mesmo clique/toque que escolheu a opção
-        while (!(Input.GetKeyDown(KeyCode.Space) || MobileInputManager.IsTouchOrClickDown())) {
+        while (!MobileInputManager.ConfirmarPressionado()) {
             yield return null;
         }
 
@@ -754,7 +759,7 @@ public class Player : MonoBehaviour {
         concluido(true);
     }
 
-    private IEnumerator UsarApitoDoChomp() {
+    private IEnumerator UsarAgenciaDeCobranca() {
         int total = 0;
         foreach (Player r in Rivais()) {
             int cobranca = Mathf.Min(5, r.state.getCoins());
@@ -762,7 +767,7 @@ public class Player : MonoBehaviour {
             total += cobranca;
         }
         state.changeCoins(total);
-        ui.Dialogue("Apito do Chomp", $"O Chomp fez a cobrança das dívidas!\nVocê recebeu {total} Moedas dos rivais.", true);
+        ui.Dialogue("Agência de Cobrança", $"A agência cobrou o que os rivais deviam!\nVocê recebeu {total} Moedas.", true);
         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
     }
 
@@ -787,7 +792,7 @@ public class Player : MonoBehaviour {
         concluido(true);
     }
 
-    private IEnumerator UsarApitoDoWiggler() {
+    private IEnumerator UsarBilhetePremiado() {
         string texto;
         switch (GameRng.Range(0, 3)) {
             case 0:
@@ -810,7 +815,7 @@ public class Player : MonoBehaviour {
                 }
                 break;
         }
-        ui.Dialogue("Apito do Wiggler", texto, true);
+        ui.Dialogue("Bilhete Premiado", texto, true);
         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
     }
 }

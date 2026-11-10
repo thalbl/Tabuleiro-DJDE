@@ -52,6 +52,7 @@ public class NetworkTurnManager : MonoBehaviour {
     void Start() {
         boardManager = FindObjectOfType<BoardManager>();
         uiManager = FindObjectOfType<UIManager>();
+        habilitarTimerLocal = Configuracoes.TimerTurno;
 
         if (NetworkTransportService.Instance != null) {
             NetworkTransportService.Instance.OnPacoteRecebido += ProcessarPacoteRede;

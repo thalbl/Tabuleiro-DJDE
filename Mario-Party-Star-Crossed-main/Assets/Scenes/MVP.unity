@@ -409,7 +409,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Bowser Revolution
+  m_Text: "Op\xE7\xE3o"
 --- !u!222 &16776749
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -488,7 +488,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Bowser Revolution
+  m_Text: "Op\xE7\xE3o"
 --- !u!222 &17543356
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -645,7 +645,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Bowser Revolution
+  m_Text: "Op\xE7\xE3o"
 --- !u!222 &19921769
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -968,7 +968,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 40
     m_FontStyle: 0
     m_BestFit: 0
@@ -1808,7 +1808,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -2462,7 +2462,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 40
     m_FontStyle: 0
     m_BestFit: 0
@@ -3331,7 +3331,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -4248,7 +4248,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 100
     m_FontStyle: 0
     m_BestFit: 0
@@ -4260,7 +4260,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Bowser Space
+  m_Text: Roleta
 --- !u!222 &241110947
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4611,7 +4611,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Bowser Revolution
+  m_Text: "Op\xE7\xE3o"
 --- !u!222 &259901743
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4691,7 +4691,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -5359,7 +5359,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -6267,7 +6267,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 40
     m_FontStyle: 0
     m_BestFit: 0
@@ -7094,7 +7094,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 40
     m_FontStyle: 0
     m_BestFit: 0
@@ -8544,7 +8544,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -9054,7 +9054,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 40
     m_FontStyle: 0
     m_BestFit: 0
@@ -10328,7 +10328,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Go, Mario!
+  m_Text: Sua vez!
 --- !u!222 &448178879
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -11359,7 +11359,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -14239,7 +14239,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -15169,7 +15169,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -16201,7 +16201,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Go, Mario!
+  m_Text: Sua vez!
 --- !u!222 &796962599
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -16646,7 +16646,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -17545,7 +17545,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -18943,7 +18943,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -19977,7 +19977,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -20069,7 +20069,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -20529,7 +20529,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -21267,7 +21267,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -22947,7 +22947,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -23190,7 +23190,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 40
     m_FontStyle: 0
     m_BestFit: 0
@@ -23269,7 +23269,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -23844,7 +23844,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -24708,7 +24708,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 155
     m_FontStyle: 0
     m_BestFit: 0
@@ -24799,7 +24799,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Bowser Revolution
+  m_Text: "Op\xE7\xE3o"
 --- !u!222 &1256637663
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -28141,7 +28141,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Bowser Revolution
+  m_Text: "Op\xE7\xE3o"
 --- !u!222 &1431671183
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -30207,6 +30207,7 @@ MonoBehaviour:
       casasDesdeUltimaExperiencia: 0
       promocoesExperienciaPendentes: 0
     proximoJogador: 0
+    cenaMapa: 
   fileToLoad: savedgame_0
   p1: {fileID: 2880195953842845025}
   p2: {fileID: 972574987}
@@ -30660,7 +30661,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 100
     m_FontStyle: 0
     m_BestFit: 0
@@ -30672,7 +30673,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Bowser Space
+  m_Text: Roleta
 --- !u!222 &1560865537
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -30993,7 +30994,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 40
     m_FontStyle: 0
     m_BestFit: 0
@@ -33832,7 +33833,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 40
     m_FontStyle: 0
     m_BestFit: 0
@@ -37178,7 +37179,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 12800000, guid: cdc60eaf0d5744d28945105c27a9d625, type: 3}
+    m_Font: {fileID: 12800000, guid: f130efd24a88ee844834f6d4e685250d, type: 3}
     m_FontSize: 60
     m_FontStyle: 0
     m_BestFit: 0
@@ -39969,7 +39970,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: King Boo
+  m_Text: Narrador
 --- !u!222 &1991302711
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -42171,7 +42172,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Bowser Revolution
+  m_Text: "Op\xE7\xE3o"
 --- !u!222 &2104014910
 CanvasRenderer:
   m_ObjectHideFlags: 0

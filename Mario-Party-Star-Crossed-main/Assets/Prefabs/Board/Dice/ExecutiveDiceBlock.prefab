@@ -9748,7 +9748,7 @@ GameObject:
   - component: {fileID: 2199211710789443249}
   - component: {fileID: 2199211710789443253}
   m_Layer: 0
-  m_Name: BowserDiceBlock
+  m_Name: ExecutiveDiceBlock
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

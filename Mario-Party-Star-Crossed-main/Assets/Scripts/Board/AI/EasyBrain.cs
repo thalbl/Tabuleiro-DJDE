@@ -19,8 +19,8 @@ public class EasyBrain : AIBrain {
         { "Vac Pack", BoardItem.VacPack },
         { "Dueling Glove", BoardItem.DuelingGlove },
         { "Magic Lamp", BoardItem.MagicLamp },
-        { "Wiggler Whistle", BoardItem.WigglerWhistle },
-        { "Chomp Call", BoardItem.ChompCall }
+        { "Bilhete Premiado", BoardItem.WigglerWhistle },
+        { "Agencia Cobranca", BoardItem.ChompCall }
     };
 
     private string RivalMaisRico() {
@@ -171,11 +171,11 @@ public class EasyBrain : AIBrain {
                                 }
                                 break;
                             case BoardItem.BooBell:
-                                if (!turnChoices.ContainsKey("Boo Bell")) {
+                                if (!turnChoices.ContainsKey("Espiao")) {
                                     if (state.getCoins() >= 40 && rivals.Any(p => p.getStars() >= 1)) {
-                                        turnChoices.Add("Boo Bell", basicMovementValue + 30);
+                                        turnChoices.Add("Espiao", basicMovementValue + 30);
                                     } else {
-                                        turnChoices.Add("Boo Bell", basicMovementValue + 15);
+                                        turnChoices.Add("Espiao", basicMovementValue + 15);
                                     }
                                 }
                                 break;
@@ -204,13 +204,13 @@ public class EasyBrain : AIBrain {
                                 }
                                 break;
                             case BoardItem.WigglerWhistle:
-                                if (!turnChoices.ContainsKey("Wiggler Whistle")) {
-                                    turnChoices.Add("Wiggler Whistle", basicMovementValue + 16);
+                                if (!turnChoices.ContainsKey("Bilhete Premiado")) {
+                                    turnChoices.Add("Bilhete Premiado", basicMovementValue + 16);
                                 }
                                 break;
                             case BoardItem.ChompCall:
-                                if (!turnChoices.ContainsKey("Chomp Call")) {
-                                    turnChoices.Add("Chomp Call", basicMovementValue + (rivals.Any(r => r.getCoins() > 0) ? 12 : -5));
+                                if (!turnChoices.ContainsKey("Agencia Cobranca")) {
+                                    turnChoices.Add("Agencia Cobranca", basicMovementValue + (rivals.Any(r => r.getCoins() > 0) ? 12 : -5));
                                 }
                                 break;
                             // Novos itens que antes eram stubs
