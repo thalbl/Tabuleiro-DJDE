@@ -282,8 +282,10 @@ public class PlayerDetailMenu : MonoBehaviour
         // Aplicações
         if (txtAplicacoes != null)
         {
-            var investments = currentPlayer.GetInvestments();
-            txtAplicacoes.text = investments.Count > 0 ? string.Join(", ", investments) : "Nenhuma";
+            // Carteira: poupança + reserva + ações (e a dívida, se houver)
+            int aplic = currentPlayer.Aplicacoes;
+            int div = currentPlayer.GetDivida();
+            txtAplicacoes.text = (aplic > 0 ? $"{aplic} Moedas" : "Nenhuma") + (div > 0 ? $"  (dívida {div})" : "");
         }
 
         // Educação

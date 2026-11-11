@@ -122,7 +122,7 @@ public class GameOverController : MonoBehaviour {
 
         // Estatísticas
         Chip(cartao.transform, 0.6f, "texture/icons/star", estrelas.ToString());
-        Chip(cartao.transform, 0.7f, "texture/icons/coin", moedas.ToString());
+        Chip(cartao.transform, 0.7f, "texture/icons/coin", moedas.ToString()); // patrimônio líquido (moedas + aplicações - dívidas)
 
         var tPontos = TemaUI.Texto(cartao.transform, pontos + "\n<size=22>pontos</size>", 46, TemaUI.Ouro, FontStyle.Bold, TextAnchor.MiddleCenter);
         tPontos.lineSpacing = 0.8f;

@@ -227,13 +227,18 @@ public class BoardManager : MonoBehaviour {
             }
         }
 
+        // Bolsa de valores: um índice para todos (GameRng: mesmo resultado em todas as máquinas no online)
+        int variacaoBolsa = GameRng.Range(-12, 16);
+        foreach (PlayerState ps in players) ps.AtualizarAcoes(variacaoBolsa);
+        string noticiaBolsa = $"\nBolsa de valores: {(variacaoBolsa >= 0 ? "+" : "")}{variacaoBolsa}% nesta rodada.";
+
 		// Fim de rodada simplificado - sem despesas automáticas
 		if (ui != null) {
             string avisoRede = "";
             if (NetworkTurnManager.Instance != null && NetworkTurnManager.Instance.DessincroniaDetectada) {
                 avisoRede = $"\n\nAtenção: as máquinas divergiram na rodada {NetworkTurnManager.Instance.RodadaDaDessincronia}. Os placares podem estar diferentes entre os jogadores.";
             }
-			ui.Dialogue("Fim da Rodada", $"Rodada {state.getCurrentTurn()} concluída!{avisoRede}", true);
+			ui.Dialogue("Fim da Rodada", $"Rodada {state.getCurrentTurn() + 1} concluída!{noticiaBolsa}{avisoRede}", true);
             yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
         }
 
@@ -332,7 +337,7 @@ public class BoardManager : MonoBehaviour {
 
             if (player != null) {
                 PlayerPrefs.SetString($"Player{position}Name", player.charName());
-                PlayerPrefs.SetInt($"Player{position}Money", player.getCoins());
+                PlayerPrefs.SetInt($"Player{position}Money", player.PatrimonioLiquido); // patrimônio: moedas + aplicações - dívidas
                 PlayerPrefs.SetString($"Player{position}Career", player.GetFormattedCareerLevel());
                 PlayerPrefs.SetInt($"Player{position}EducationLevel", player.GetEducationLevel());
                 PlayerPrefs.SetInt($"Player{position}Stars", player.getStars());

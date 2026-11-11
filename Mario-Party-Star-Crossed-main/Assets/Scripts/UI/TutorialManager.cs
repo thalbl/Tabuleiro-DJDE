@@ -75,110 +75,97 @@ public class TutorialManager : MonoBehaviour
             new SlideTutorial(
                 "?",
                 "Bem-vindo ao Caminho do Sucesso!",
-                "Este e um jogo de tabuleiro onde voce " +
-                "avanca pelo caminho, coleta Moedas e " +
-                "Estrelas, e evolui sua carreira!\n\n" +
-                "Sua PONTUACAO FINAL e calculada assim:\n" +
-                "Estrelas x100 + Moedas + Carreira x50 " +
-                "+ Educacao x75\n\n" +
-                "Vence quem tiver mais pontos!",
+                "Ande pelo tabuleiro, cuide do seu dinheiro " +
+                "e faça sua carreira crescer.\n\n" +
+                "COMO VENCER: chegue à meta de carreira do mapa " +
+                "e vença na hora, ou tenha a maior pontuação " +
+                "quando as rodadas acabarem.\n\n" +
+                "PONTOS: Estrelas x100 + Patrimônio + Carreira x50 + Educação x75",
                 corVerdeFundo
             ),
 
             new SlideTutorial(
                 "!",
                 "Seu Turno",
-                "No seu turno, voce recebe seu Holerite " +
-                "(Salario - Despesas = Liquido) e pode " +
-                "escolher:\n\n" +
-                "ROLAR DADOS - Avanca pelo tabuleiro\n\n" +
-                "USAR ITEM - Usa um item do inventario\n\n" +
-                "VER TABULEIRO - Olha o mapa completo\n\n" +
-                "Profissoes com salario alto tem despesas " +
-                "maiores! Fique de olho na renda liquida.",
+                "No começo do turno chega o HOLERITE: salário menos " +
+                "despesas, mais os juros das suas aplicações e dívidas.\n\n" +
+                "Depois você escolhe:\n" +
+                "ROLAR DADOS - anda pelo tabuleiro\n" +
+                "USAR ITEM - usa um item do bolso\n" +
+                "BANCO - aplica, investe ou pega empréstimo\n" +
+                "VER TABULEIRO - olha o mapa inteiro",
                 corVerdeFundo
             ),
 
             new SlideTutorial(
                 "$",
-                "Moedas e Estrelas",
-                "MOEDAS sao ganhas ao cair em casas " +
-                "azuis, acertar perguntas e receber " +
-                "a mesada do seu trabalho.\n\n" +
-                "ESTRELAS custam 20 Moedas e sao " +
-                "compradas ao passar pela casa de Estrela.\n\n" +
-                "Quem tem mais Estrelas esta em " +
-                "primeiro lugar!",
+                "Banco e Investimentos",
+                "POUPANÇA - rende 3% por turno (juros compostos).\n\n" +
+                "RESERVA DE EMERGÊNCIA - não rende, mas paga os " +
+                "imprevistos das casas vermelhas antes do seu dinheiro.\n\n" +
+                "AÇÕES - sobem ou caem com a Bolsa a cada rodada.\n\n" +
+                "EMPRÉSTIMO - +50 na hora, 8% de juros por turno. " +
+                "Se faltar dinheiro, a diferença vira dívida (cheque especial)!",
                 corDourado
             ),
 
             new SlideTutorial(
                 "#",
                 "Tipos de Casas",
-                "AZUL - Voce ganha Moedas!\n\n" +
-                "VERMELHA - Voce perde Moedas...\n\n" +
-                "ESTRELA - Compre uma Estrela por 20 Moedas!\n\n" +
-                "ITEM - Ganhe um item gratuito!\n\n" +
-                "PERGUNTA - Responda certo e ganhe Moedas!\n\n" +
-                "SORTE - Evento aleatorio!\n\n" +
-                "CARREIRA - Evolua sua profissao!",
+                "AZUL - bônus, aumento ou participação nos lucros\n" +
+                "VERMELHA - imprevistos, cortes e multas\n" +
+                "PERGUNTA - acerte e ganhe Moedas\n" +
+                "UNIVERSIDADE - invista em educação\n" +
+                "CARREIRA - com os requisitos, é promovido\n" +
+                "ESTRELA - compre Estrelas (cada uma custa mais)\n" +
+                "LOJA e CONSULTOR - itens para a jornada",
                 corAzul
             ),
 
             new SlideTutorial(
                 "%",
                 "Itens de Movimento",
-                "Voce pode carregar ate 3 itens e usar " +
-                "1 por turno antes de rolar o dado:\n\n" +
-                "COFRINHO - Avanca 1 casa extra\n\n" +
-                "SUPER DADO - Avanca 2 casas extras\n\n" +
-                "FOGUETE - Avanca 3 casas extras!\n\n" +
-                "FANTASIA DO BOWSER - Avanca 5 casas " +
-                "e cobra 20 Moedas de quem passar por voce!",
+                "Você carrega até 3 itens e usa 1 por turno:\n\n" +
+                "COFRINHO - rola 2 dados\n" +
+                "SUPER DADO - rola 3 dados\n" +
+                "FOGUETE - você escolhe o número do dado\n" +
+                "TRAJE DE EXECUTIVO - 5 dados de 1 a 3 e " +
+                "cobra 20 Moedas de quem você alcançar",
                 corVermelho
             ),
 
             new SlideTutorial(
                 "%",
-                "Itens Estrategicos",
-                "BURACO NO BOLSO - Um rival so rola " +
-                "de 1 a 3 no proximo turno!\n\n" +
-                "PORTAL MAGICO - Troca de lugar " +
-                "com outro jogador!\n\n" +
-                "VENTANIA - Sopra um rival para " +
-                "um lugar aleatorio do tabuleiro!\n\n" +
-                "LAMPADA MAGICA - Te leva direto " +
-                "ate a Estrela!\n\n" +
-                "ESPIAO CORPORATIVO - Desvia moedas " +
-                "ou uma estrela de um rival!",
+                "Itens Estratégicos",
+                "BURACO NO BOLSO - um rival só rola de 1 a 3\n" +
+                "PORTAL MÁGICO - troca de lugar com um rival\n" +
+                "VENTANIA - manda um rival para longe\n" +
+                "LÂMPADA MÁGICA - leva você até a Estrela\n" +
+                "ESPIÃO CORPORATIVO - desvia Moedas ou uma Estrela\n" +
+                "ESCUDO PROTETOR - protege do Espião",
                 corVermelho
             ),
 
             new SlideTutorial(
                 "~",
-                "Carreira e Educacao",
-                "Cada jogador tem uma Profissao que " +
-                "determina sua Mesada (moedas por turno).\n\n" +
-                "Na casa de CARREIRA, voce pode " +
-                "evoluir seu nivel profissional, " +
-                "aumentando sua Mesada!\n\n" +
-                "Na casa de EDUCACAO, voce investe " +
-                "em formacao (Ensino Medio, Superior, " +
-                "Pos-graduacao), que desbloqueia " +
-                "promocoes melhores!",
+                "Carreira e Educação",
+                "Sua profissão define salário e despesas.\n\n" +
+                "Você é promovido ao passar pelo portão de CARREIRA " +
+                "com os requisitos (nível, educação e dinheiro guardado) " +
+                "e também por EXPERIÊNCIA, a cada 30 casas andadas.\n\n" +
+                "Na UNIVERSIDADE você sobe a educação: Ensino Médio, " +
+                "Superior e Pós-graduação.",
                 corDestaque
             ),
 
             new SlideTutorial(
                 ">",
                 "Pronto para Jogar!",
-                "Resumo rapido:\n\n" +
-                "1. Receba seu Holerite (Salario - Despesas)\n" +
-                "2. Role o dado e ande pelo tabuleiro\n" +
-                "3. Casas azuis = bom, vermelhas = ruim\n" +
-                "4. Compre Estrelas quando puder (20 Moedas)\n" +
-                "5. Use itens estrategicamente\n" +
-                "6. Evolua carreira e educacao!\n\n" +
+                "1. Confira o holerite\n" +
+                "2. Monte sua reserva antes de investir\n" +
+                "3. Evite dívidas: os juros comem seu patrimônio\n" +
+                "4. Compre Estrelas quando o dinheiro sobrar\n" +
+                "5. Estude e avance na carreira até a meta\n\n" +
                 "Boa sorte no Caminho do Sucesso!",
                 corDourado
             )

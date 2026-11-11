@@ -1,3 +1,18 @@
-Você prefere investir em ações ou imóveis?|ações|imóveis
-Qual é mais arriscado: poupança ou criptomoedas?|poupança|criptomoedas
-Você gosta de planejamento financeiro de longo prazo?|sim|não
+# Perguntas de perfil das bifurcações: não há resposta certa, cada escolha leva por um caminho.
+# Formato: pergunta, caminho principal e caminho alternativo, separados por barra vertical
+Você prefere investir em ações ou em imóveis?|Ações|Imóveis
+Ganhou um bônus. O que faz primeiro?|Reforça a reserva|Investe tudo
+Prefere segurança ou crescimento rápido?|Segurança|Crescimento
+Estudar à noite ou fazer hora extra?|Estudar|Hora extra
+Emprego estável ou abrir o próprio negócio?|Emprego estável|Próprio negócio
+Comprar um carro à vista ou financiado?|À vista|Financiado
+Morar de aluguel ou comprar a casa própria?|Aluguel|Casa própria
+Prefere poupar para uma viagem ou para a aposentadoria?|Viagem|Aposentadoria
+Recebeu uma proposta PJ com salário maior. Aceita?|Fico na CLT|Aceito o PJ
+Investir em você ou no seu patrimônio?|Em mim|No patrimônio
+Mudar de cidade por uma vaga melhor?|Fico onde estou|Mudo de cidade
+Prefere renda fixa ou renda variável?|Renda fixa|Renda variável
+Fazer um curso caro agora ou guardar o dinheiro?|Fazer o curso|Guardar
+Trabalhar em equipe ou sozinho?|Em equipe|Sozinho
+Aprender algo novo ou se especializar no que já faz?|Algo novo|Especializar
+Gastar com experiências ou com coisas?|Experiências|Coisas

@@ -70,6 +70,7 @@ public class Player : MonoBehaviour {
 
         ui.YourTurn(state.charName(), state.charColor());
         usedItem = false;
+        brain?.InicioDoTurno();
 
         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
 
@@ -77,13 +78,17 @@ public class Player : MonoBehaviour {
         int salario = state.GetSalary();
         int despesas = state.GetDespesaAtual();
         int liquido = salario - despesas;
-        state.changeCoins(liquido);
+        int noChequeEspecial = 0;
+        if (liquido >= 0) state.changeCoins(liquido);
+        else noChequeEspecial = state.PagarDespesa(-liquido); // faltou dinheiro: vira dívida
 
-        string resumoFinanceiro =
-            $"Salario:    +{salario} Moedas\n" +
-            $"Despesas: -{despesas} Moedas\n" +
-            $"_______________________\n" +
-            $"Liquido:    {(liquido >= 0 ? "+" : "")}{liquido} Moedas";
+        // Juros da poupança, juros e parcela da dívida
+        string extrato = state.ProcessarMesFinanceiro();
+
+        // A caixa de diálogo comporta ~2 linhas: resumo compacto
+        string resumoFinanceiro = $"Salário +{salario}  ·  Despesas -{despesas}  ·  Líquido {(liquido >= 0 ? "+" : "")}{liquido} Moedas";
+        if (noChequeEspecial > 0) resumoFinanceiro += $"  ·  {noChequeEspecial} no cheque especial";
+        if (!string.IsNullOrEmpty(extrato)) resumoFinanceiro += "\n" + extrato;
         ui.Dialogue("Holerite Mensal", resumoFinanceiro, true);
         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
         while (takingTurn) {
@@ -91,10 +96,10 @@ public class Player : MonoBehaviour {
             ui.ClearOptionDescriptions();
             
             if (usedItem || state.getItems().Count == 0) {
-                ui.Dialogue(Prompts.MenuTurno, new List<string>() { "Rolar Dados", "Ver Tabuleiro" }, true);
+                ui.Dialogue(Prompts.MenuTurno, new List<string>() { "Rolar Dados", Prompts.OpcaoBanco, "Ver Tabuleiro" }, true);
             }
             else {
-                ui.Dialogue(Prompts.MenuTurno, new List<string>() { "Rolar Dados", "Usar Item", "Ver Tabuleiro" }, true);
+                ui.Dialogue(Prompts.MenuTurno, new List<string>() { "Rolar Dados", "Usar Item", Prompts.OpcaoBanco, "Ver Tabuleiro" }, true);
             }
             yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
             switch (ui.MostRecentDialogueAnswer()) {
@@ -480,6 +485,9 @@ public class Player : MonoBehaviour {
                 case "Ver Tabuleiro":
                     yield return StartCoroutine(VerTabuleiro());
                     break;
+                case Prompts.OpcaoBanco:
+                    yield return StartCoroutine(MenuBanco());
+                    break;
                 case "Rolar Dados":
                 default:
                     int mv = state.getMovement();
@@ -598,6 +606,64 @@ public class Player : MonoBehaviour {
 
     public int GetCurrentRollCount() {
         return rollCount;
+    }
+
+    // ================== BANCO ==================
+    // Não gasta o turno: aplicar, resgatar, investir, pegar e pagar empréstimo. Depois volta ao menu do turno.
+    private string Saldos() =>
+        $"Moedas {state.getCoins()}  ·  Poupança {state.GetPoupanca()}  ·  Reserva {state.GetReserva()}  ·  Ações {state.GetAcoes()}  ·  Dívida {state.GetDivida()}";
+
+    private IEnumerator MenuBanco() {
+        while (true) {
+            ui.Dialogue("Banco", Prompts.MenuBanco + "\n" + Saldos(),
+                new List<string>() { "Poupança", "Reserva", "Ações", "Empréstimo", Prompts.Voltar }, true);
+            yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
+            string escolha = ui.MostRecentDialogueAnswer();
+            if (escolha == "Poupança") yield return StartCoroutine(ProdutoBanco(Prompts.BancoPoupanca, "Depositar", "Sacar tudo",
+                v => state.DepositarPoupanca(v), () => state.SacarPoupanca(state.GetPoupanca()), () => state.GetPoupanca()));
+            else if (escolha == "Reserva") yield return StartCoroutine(ProdutoBanco(Prompts.BancoReserva, "Guardar", "Resgatar tudo",
+                v => state.GuardarReserva(v), () => state.ResgatarReserva(state.GetReserva()), () => state.GetReserva()));
+            else if (escolha == "Ações") yield return StartCoroutine(ProdutoBanco(Prompts.BancoAcoes, "Investir", "Vender tudo",
+                v => state.ComprarAcoes(v), () => state.VenderAcoes(state.GetAcoes()), () => state.GetAcoes()));
+            else if (escolha == "Empréstimo") yield return StartCoroutine(MenuEmprestimo());
+            else yield break;
+        }
+    }
+
+    /// <summary>Submenu genérico: aplicar 20 / 50 ou resgatar tudo, repetindo até "Voltar".</summary>
+    private IEnumerator ProdutoBanco(string titulo, string verboAplicar, string rotuloResgatar,
+                                     System.Func<int, int> aplicar, System.Func<int> resgatar, System.Func<int> saldo) {
+        while (true) {
+            var opcoes = new List<string>();
+            if (state.getCoins() >= 20) opcoes.Add($"{verboAplicar} 20");
+            if (state.getCoins() >= 50) opcoes.Add($"{verboAplicar} 50");
+            if (saldo() > 0) opcoes.Add(rotuloResgatar);
+            opcoes.Add(Prompts.Voltar);
+            ui.Dialogue("Banco", titulo + "\n" + Saldos(), opcoes, true);
+            yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
+            string escolha = ui.MostRecentDialogueAnswer();
+            if (escolha == $"{verboAplicar} 20") aplicar(20);
+            else if (escolha == $"{verboAplicar} 50") aplicar(50);
+            else if (escolha == rotuloResgatar) resgatar();
+            else yield break;
+        }
+    }
+
+    private IEnumerator MenuEmprestimo() {
+        while (true) {
+            var opcoes = new List<string>();
+            if (state.PodePegarEmprestimo) opcoes.Add($"Pegar {PlayerState.ValorEmprestimo}");
+            if (state.GetDivida() > 0 && state.getCoins() >= 20 && state.getCoins() < state.GetDivida()) opcoes.Add("Pagar 20");
+            if (state.GetDivida() > 0 && state.getCoins() >= state.GetDivida()) opcoes.Add("Quitar tudo");
+            opcoes.Add(Prompts.Voltar);
+            ui.Dialogue("Banco", Prompts.BancoEmprestimo + "\n" + Saldos(), opcoes, true);
+            yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
+            string escolha = ui.MostRecentDialogueAnswer();
+            if (escolha == $"Pegar {PlayerState.ValorEmprestimo}") state.PegarEmprestimo();
+            else if (escolha == "Pagar 20") state.PagarDivida(20);
+            else if (escolha == "Quitar tudo") state.PagarDivida(state.GetDivida());
+            else yield break;
+        }
     }
 
     // ================== VER TABULEIRO ==================

@@ -14,4 +14,13 @@ public static class Prompts {
     public const string AlvoDuelo = "Quem você quer desafiar para um duelo?";
 
     public const string Cancelar = "Cancelar";
+
+    // Banco: o texto mostrado é "<linha fixa>\n<saldos>"; a IA reconhece pela linha fixa (StartsWith)
+    public const string MenuBanco = "Banco: o que você quer fazer?";
+    public const string BancoPoupanca = "Poupança: rende 3% por turno.";
+    public const string BancoReserva = "Reserva de emergência: paga os imprevistos primeiro.";
+    public const string BancoAcoes = "Ações: sobem ou caem com a Bolsa a cada rodada.";
+    public const string BancoEmprestimo = "Empréstimo: +50 agora, juros de 8% por turno.";
+    public const string OpcaoBanco = "Banco";
+    public const string Voltar = "Voltar";
 }

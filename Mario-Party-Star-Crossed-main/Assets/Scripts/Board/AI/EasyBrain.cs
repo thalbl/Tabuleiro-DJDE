@@ -52,7 +52,67 @@ public class EasyBrain : AIBrain {
         return Prompts.Cancelar;
     }
 
+    // ------------------------------------------------------------------ banco
+    // Uma operação bancária por turno, escolhida no menu do turno e executada pelos submenus.
+    private bool bancoFeitoNoTurno;
+    private string bancoProduto, bancoOpcao;
+    private bool bancoOperacaoFeita;
+
+    public override void InicioDoTurno() {
+        bancoFeitoNoTurno = false;
+        bancoProduto = bancoOpcao = null;
+        bancoOperacaoFeita = false;
+    }
+
+    /// <summary>Regras simples de educação financeira: quitar dívida, montar reserva, depois investir o excedente.</summary>
+    private bool PlanejarBanco() {
+        int c = state.getCoins();
+        int preco = ClassicStarSpace.PrecoEstrela(state);
+        if (state.GetDivida() > 0 && c >= state.GetDivida() + 10) { bancoProduto = "Empréstimo"; bancoOpcao = "Quitar tudo"; }
+        else if (state.GetDivida() > 0 && c >= 40 && c < state.GetDivida()) { bancoProduto = "Empréstimo"; bancoOpcao = "Pagar 20"; }
+        else if (c < 10 && state.GetPoupanca() > 0) { bancoProduto = "Poupança"; bancoOpcao = "Sacar tudo"; }
+        else if (state.GetReserva() < 30 && c >= preco + 40) { bancoProduto = "Reserva"; bancoOpcao = "Guardar 20"; }
+        else if (c >= preco + 100) { bancoProduto = "Poupança"; bancoOpcao = "Depositar 50"; }
+        else if (c >= preco + 70) {
+            // diversifica: alterna entre ações e poupança conforme o que tem menos
+            if (state.GetAcoes() <= state.GetPoupanca()) { bancoProduto = "Ações"; bancoOpcao = "Investir 20"; }
+            else { bancoProduto = "Poupança"; bancoOpcao = "Depositar 20"; }
+        }
+        else return false;
+        return true;
+    }
+
+    private string DecidirBanco(string question, List<string> options) {
+        if (question.StartsWith(Prompts.MenuBanco)) {
+            if (!bancoOperacaoFeita && bancoProduto != null && options.Contains(bancoProduto)) return bancoProduto;
+            bancoFeitoNoTurno = true;
+            return Prompts.Voltar;
+        }
+        // Submenu de um produto
+        if (!bancoOperacaoFeita && bancoOpcao != null && options.Contains(bancoOpcao)) {
+            bancoOperacaoFeita = true;
+            return bancoOpcao;
+        }
+        bancoOperacaoFeita = true;
+        return Prompts.Voltar;
+    }
+
+    private static bool EhPerguntaBanco(string q) =>
+        q != null && (q.StartsWith(Prompts.MenuBanco) || q.StartsWith(Prompts.BancoPoupanca) || q.StartsWith(Prompts.BancoReserva)
+                      || q.StartsWith(Prompts.BancoAcoes) || q.StartsWith(Prompts.BancoEmprestimo));
+
     public override string Prompt(string question, List<string> options, int spacesLeft) {
+        // Quiz: chance de acertar cresce com a educação (35% sem formação ... 80% com pós-graduação)
+        var quiz = QuestionSpace.PerguntaAtual;
+        if (quiz != null && question == quiz.Texto && options.Contains(quiz.Correta)) {
+            int chance = 35 + 15 * state.GetEducationLevel();
+            if (GameRng.Range(0, 100) < chance) return quiz.Correta;
+            foreach (string o in options) if (o != quiz.Correta) return o;
+        }
+        if (EhPerguntaBanco(question)) return DecidirBanco(question, options);
+        if (question == Prompts.MenuTurno && !bancoFeitoNoTurno && options.Contains(Prompts.OpcaoBanco) && PlanejarBanco()) {
+            return Prompts.OpcaoBanco;
+        }
         switch (question) {
             case Prompts.MenuTurno:
                 if (options.Contains("Usar Item") || state.getMovement() == 3) {

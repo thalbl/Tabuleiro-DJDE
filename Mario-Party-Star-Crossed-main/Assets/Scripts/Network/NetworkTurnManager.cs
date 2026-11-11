@@ -284,6 +284,10 @@ public class NetworkTurnManager : MonoBehaviour {
                 h = h * 31 + p.GetEducationLevel();
                 h = h * 31 + p.GetSalary();
                 h = h * 31 + p.getItems().Count;
+                h = h * 31 + p.GetPoupanca();
+                h = h * 31 + p.GetReserva();
+                h = h * 31 + p.GetAcoes();
+                h = h * 31 + p.GetDivida();
                 foreach (BoardItem item in p.getItems()) h = h * 31 + (int)item;
             }
             return h;

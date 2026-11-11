@@ -87,7 +87,7 @@ public class RedSpace : BoardSpace {
             case "GastarDinheiro":
                 int gastoBase = valores[0];
                 int gasto = EscalarMoedasCasa(gastoBase * nivelCarreira, categoria);
-                p.state.changeCoins(-gasto);
+                string comoPagou = p.state.PagarImprevisto(gasto);
 
                 string motivo = categoria switch {
                     0 => "Despesa imprevista com transporte",
@@ -95,14 +95,14 @@ public class RedSpace : BoardSpace {
                     2 => "Imposto e ajuste tributário",
                     _ => "Crise setorial de mercado"
                 };
-                ui.Dialogue(titulo, $"{motivo}:\n-{gasto} Moedas pagas!", true);
+                ui.Dialogue(titulo, $"{motivo}: -{gasto} Moedas\n({comoPagou})", true);
                 break;
 
             case "PerderMoedas":
                 int moedasPerdidasBase = valores[0];
-                int moedasPerdidas = Mathf.Min(EscalarMoedasCasa(moedasPerdidasBase + nivelCarreira, categoria), p.state.getCoins());
-                p.state.changeCoins(-moedasPerdidas);
-                ui.Dialogue(titulo, $"Prejuízo imprevisto: -{moedasPerdidas} Moedas!", true);
+                int moedasPerdidas = EscalarMoedasCasa(moedasPerdidasBase + nivelCarreira, categoria);
+                string comoPagouPrejuizo = p.state.PagarImprevisto(moedasPerdidas);
+                ui.Dialogue(titulo, $"Prejuízo imprevisto: -{moedasPerdidas} Moedas\n({comoPagouPrejuizo})", true);
                 break;
 
             case "Demissao":
@@ -112,8 +112,8 @@ public class RedSpace : BoardSpace {
                 }
                 else {
                     int perdaAlternativa = EscalarMoedasCasa(6 * nivelCarreira, categoria);
-                    p.state.changeCoins(-perdaAlternativa);
-                    ui.Dialogue("Advertência Profissional", $"Falha em entrega importante: -{perdaAlternativa} Moedas de multa!", true);
+                    string comoPagouMulta = p.state.PagarImprevisto(perdaAlternativa);
+                    ui.Dialogue("Advertência Profissional", $"Falha em entrega importante: -{perdaAlternativa} Moedas de multa\n({comoPagouMulta})", true);
                 }
                 break;
         }

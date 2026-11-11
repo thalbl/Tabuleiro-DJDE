@@ -124,7 +124,7 @@ Base `BoardSpace`: `next`, `id`, `canLandHere`, `blueChance`, corrotinas `pass(p
 | `StartSpace` | — | Início | id 0 |
 | `BlueSpace` (32/19) | Blue Space | **Bonificação** | Sorteia de `Resources/bonificacoes_nivel_{cat}.txt`: `AumentarSalario`, `GanharMoedasDinheiro`, `GanharDinheiro`, `Promocao` (bônus em moedas) |
 | `RedSpace` (18/5) | Red Space | **Penalidade** | `penalidades_nivel_{cat}.txt`: `ReduzirSalario`, `GastarDinheiro`, `PerderMoedas`, `Demissao` (rebaixa ou multa). Valores escalam × nível de carreira |
-| `QuestionSpace` (12/9) | Question Space | **Quiz financeiro** | `quiz_nivel_{cat}.txt`; acerto = `3+nível` moedas + `salário×1%×nível`; opções embaralhadas |
+| `QuestionSpace` (12/9) | Question Space | **Quiz financeiro** | `quiz_nivel_{cat}.txt` (25/nível); acerto = 6 + 2×nível + 5% do salário; explicação após responder; baralho sem repetição |
 | `EducationSpace` (7/5) | EducationSpace | **Universidade** | Paga `educationCost` (75) → `IncreaseEducation()` |
 | `CareerTransitionSpace` (3/3) | CareerTransitionSpace | **Transição de carreira** | Ao *passar*: se carreira ≥ req, educação ≥ req e moedas ≥ `minSavings` (200) → `Promote()` e desvia para `nextLoopStart` (próximo "anel"). Promoção por mérito automática (salário ≥75, moedas ≥80, nível <3). Não consome passo |
 | `ClassicStarSpace` (2/2) | Star Space | **Estrela** | 20 moedas = 1 estrela (40 = 2 com "Moeda Dobrada") |
@@ -134,7 +134,7 @@ Base `BoardSpace`: `next`, `id`, `canLandHere`, `blueChance`, corrotinas `pass(p
 | `NothingSpace` (13/1) | Board Space | Neutra | "Nada aconteceu!" |
 
 **Categoria por nível de carreira** (Blue/Red/Question): Nv 1–3 → 0 · 4–6 → 1 · 7–8 → 2 · 9–10 → 3.
-Formato dos `.txt`: uma entrada por linha, campos separados por `|` (quiz: `pergunta|correta|op2|op3|op4|op5`).
+Formato dos `.txt`: uma entrada por linha, campos separados por `|` (quiz: `pergunta|correta|errada×4|explicação`; linhas `#` são comentário; `perguntas.txt` das bifurcações: `pergunta|caminho principal|alternativo`).
 
 **Legado removido (2026-11-10):** `Boo`, `BowserSpace`, `DuelSpace`, `LuckySpace`, `TestHappeningSpace`, `MinigameSet`, as subclasses de `GameState` dos tabuleiros originais, `SampleScene` e o prefab/materiais da casa do Bowser. Não recriar conteúdo com personagens de terceiros.
 
@@ -232,6 +232,16 @@ O enum mantém nomes originais; o texto exibido vem de `ItemSpace.itemNames[(int
 
 ---
 
+## 9a. Sistema financeiro / Banco (2026-11-10)
+
+- **Carteira** em `PlayerState` (serializada, no checksum): `poupanca` (3%/turno, compostos), `reserva` (não rende; paga imprevistos primeiro), `acoes` (variam com a Bolsa), `divida` (8%/turno; parcela automática de 10%, mín. 5, no holerite). Empréstimo de 50 por vez até o teto `LimiteDivida` (300).
+- **Holerite** (`Player.TakeTurn`): salário − despesas (se negativo, a falta vira dívida) + `ProcessarMesFinanceiro()` (juros da poupança, juros e parcela da dívida).
+- **Imprevistos** (casa vermelha: gasto, prejuízo, multa) usam `PagarImprevisto`: reserva → moedas → cheque especial (vira dívida). Cortes de salário/rebaixamento não são cobertos.
+- **Bolsa**: `BoardManager.HandleEndOfRound` sorteia uma variação de −12% a +15% (`GameRng`, igual para todos) e mostra no "Fim da Rodada".
+- **Banco no menu do turno** (não gasta o turno): Poupança / Reserva / Ações / Empréstimo / Voltar, com submenus 20/50/resgatar tudo. Textos começam com as constantes `Prompts.Banco*` (1ª linha fixa, 2ª linha com saldos) e a IA reconhece por `StartsWith`.
+- **IA** (`EasyBrain.PlanejarBanco`, uma operação por turno, zerada em `InicioDoTurno`): quitar/pagar dívida → sacar se sem liquidez → montar reserva (até 30) → poupança/ações com o excedente acima do preço da Estrela + margem. Bots não pegam empréstimo.
+- **Pontuação** usa **patrimônio líquido** (moedas + aplicações − dívidas); Estrelas só se compram com moedas (liquidez). Resultado grava o patrimônio em `Player{n}Money`.
+
 ## 9b. Padrão de UI (2026-11-10)
 
 - **Tudo passa pelo `TemaUI` (`Assets/Scripts/UI/TemaUI.cs`)**: paleta (painel verde-escuro `#0F2A1F`, cartão claro `#F0FDF4`, ouro `#FBBF24`, verde/vermelho/azul), fonte Fredoka, sprites arredondado/círculo gerados, fábricas `Texto`, `Botao` (estilos Claro/Destaque/Perigo/Escuro), `Slider`, `Interruptor`, `Segmentado`, e `EstilizarBotao/EstilizarTexto/SombraTexto/ContornoTexto` para UI existente. Não definir cores/fontes soltas em UI nova.
@@ -241,6 +251,13 @@ O enum mantém nomes originais; o texto exibido vem de `ItemSpace.itemNames[(int
 - `GetComponent<Shadow>()` pode devolver um `Outline` (herança): use `SombraPura` do TemaUI para não empilhar componentes ao restilizar.
 - **Configurações**: `Data/Configuracoes.cs` (PlayerPrefs `Cfg_*`, aplicado em toda cena) + `UI/MenuConfiguracoes.cs` (pausa no tabuleiro com botão II e Esc/Voltar; "Configurações" no canto do menu principal). Partida local pausa com `Time.timeScale = 0`; online não pausa. Com o menu aberto, `MenuConfiguracoes.Aberto` bloqueia avançar/rolar: use sempre `MobileInputManager.ConfirmarPressionado()` em vez de ler Espaço/toque direto.
 - **Tela de resultado** (`GameOverController`) é montada em código com o tema; a UI antiga da cena é desligada no Start.
+
+## 9c. Quiz (Bloco D, 2026-11-10)
+- **Banco**: `quiz_nivel_0..3.txt` com 25 perguntas cada (Finanças Pessoais / Trabalho e Crédito / Investimentos / Negócios e Estratégia — nome da categoria aparece no speaker). Limites para caber na UI: pergunta ≤ ~90, opção ≤ ~48, explicação ≤ ~120 caracteres (diálogo cabe 3 linhas a 40px; tem best-fit 28–40 como rede de segurança).
+- **Sem repetição**: `QuestionSpace.Proxima(cat)` usa um baralho (`Queue<int>`) por categoria, embaralhado com `GameRng` e refeito quando `GameRng.Seed` muda — determinístico no online. Só repete depois de esgotar as 25.
+- **Feedback**: acerto → speaker `Correto! +N Moedas` + explicação; erro → speaker `Quase!` + `Resposta certa: X` + explicação.
+- **IA**: `QuestionSpace.PerguntaAtual` fica setada enquanto a pergunta está na tela; `EasyBrain.Prompt` acerta com chance 35% + 15% × nível de educação (via `GameRng`).
+- **Bots decidem uma vez por prompt**: o ramo de bot do `UIManager` só chama `Prompt` com `mostRecentAns` vazio (antes era chamado várias vezes no mesmo frame e consumia `GameRng` a mais). Botões de opção: 560×64 com best-fit 17–28.
 
 ## 10. Convenções ao contribuir
 

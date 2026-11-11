@@ -1,120 +1,120 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Linq;
 
+/// <summary>
+/// Casa de quiz de educação financeira. Perguntas em Resources/quiz_nivel_{0..3}.txt, uma por linha:
+///   pergunta|resposta certa|errada 1|errada 2|errada 3|errada 4|explicação
+/// Linhas vazias ou começando com # são ignoradas. A explicação é mostrada depois da resposta.
+/// As perguntas saem de um "baralho" embaralhado por categoria (GameRng): não repetem até acabar o baralho.
+/// </summary>
 public class QuestionSpace : BoardSpace {
     [Tooltip("Prefab of coin object.")]
     public GameObject coinPrefab;
 
-    private Dictionary<int, List<(string pergunta, string respostaCorreta, List<string> opcoes)>> perguntasPorCategoria;
+    public class Pergunta {
+        public string Texto, Correta, Explicacao;
+        public List<string> Opcoes;
+    }
+
+    // Banco e baralhos compartilhados por todas as casas de quiz
+    static Dictionary<int, List<Pergunta>> banco;
+    static readonly Dictionary<int, Queue<int>> baralhos = new Dictionary<int, Queue<int>>();
+    static int seedDosBaralhos = int.MinValue;
+
+    /// <summary>Pergunta em exibição (a IA usa para decidir se acerta).</summary>
+    public static Pergunta PerguntaAtual { get; private set; }
+
+    static readonly string[] Temas = { "Finanças Pessoais", "Trabalho e Crédito", "Investimentos", "Negócios e Estratégia" };
 
     public override void setup() {
         this.blueChance = 100;
-        CarregarPerguntasPorCategoria();
+        if (banco == null) CarregarBanco();
     }
 
-    private void CarregarPerguntasPorCategoria() {
-        perguntasPorCategoria = new Dictionary<int, List<(string, string, List<string>)>>();
-
-        // Carregar as 4 categorias
+    static void CarregarBanco() {
+        banco = new Dictionary<int, List<Pergunta>>();
         for (int categoria = 0; categoria <= 3; categoria++) {
-            perguntasPorCategoria[categoria] = new List<(string, string, List<string>)>();
+            var lista = new List<Pergunta>();
             TextAsset arquivo = Resources.Load<TextAsset>($"quiz_nivel_{categoria}");
-
-            if (arquivo != null) {
-                string[] linhas = arquivo.text.Split('\n');
-                foreach (string linha in linhas) {
-                    string[] partes = linha.Split('|');
-                    if (partes.Length == 6) {
-                        string pergunta = partes[0].Trim();
-                        string respostaCorreta = partes[1].Trim();
-                        List<string> opcoes = new List<string> {
-                            partes[1].Trim(),
-                            partes[2].Trim(),
-                            partes[3].Trim(),
-                            partes[4].Trim(),
-                            partes[5].Trim()
-                        };
-                        perguntasPorCategoria[categoria].Add((pergunta, respostaCorreta, opcoes));
-                    }
+            if (arquivo == null) {
+                Debug.LogError($"Arquivo de quiz para categoria {categoria} não encontrado!");
+            } else {
+                foreach (string bruta in arquivo.text.Split('\n')) {
+                    string linha = bruta.Trim();
+                    if (linha.Length == 0 || linha.StartsWith("#")) continue;
+                    string[] p = linha.Split('|');
+                    if (p.Length < 6) { Debug.LogWarning($"[Quiz] Linha ignorada (campos insuficientes): {linha}"); continue; }
+                    lista.Add(new Pergunta {
+                        Texto = p[0].Trim(),
+                        Correta = p[1].Trim(),
+                        Opcoes = new List<string> { p[1].Trim(), p[2].Trim(), p[3].Trim(), p[4].Trim(), p[5].Trim() },
+                        Explicacao = p.Length > 6 ? p[6].Trim() : ""
+                    });
                 }
             }
-            else {
-                Debug.LogError($"Arquivo de quiz para categoria {categoria} não encontrado!");
-            }
+            banco[categoria] = lista;
         }
     }
 
-    // Método para embaralhar uma lista
-    private List<T> EmbaralharLista<T>(List<T> lista) {
-        List<T> copia = new List<T>(lista);
-        GameRng.Embaralhar(copia);
-        return copia;
+    /// <summary>Próxima pergunta da categoria sem repetir; reembaralha quando o baralho acaba ou a partida muda.</summary>
+    static Pergunta Proxima(int categoria) {
+        if (seedDosBaralhos != GameRng.Seed) {
+            baralhos.Clear();
+            seedDosBaralhos = GameRng.Seed;
+        }
+        var lista = banco[categoria];
+        if (lista.Count == 0) return null;
+        if (!baralhos.TryGetValue(categoria, out var fila) || fila.Count == 0) {
+            var ordem = new List<int>();
+            for (int i = 0; i < lista.Count; i++) ordem.Add(i);
+            GameRng.Embaralhar(ordem);
+            fila = new Queue<int>(ordem);
+            baralhos[categoria] = fila;
+        }
+        return lista[fila.Dequeue()];
     }
 
-    private int ObterCategoriaPorNivelCarreira(int nivelCarreira) {
-        // Mapear níveis de carreira para categorias de perguntas
-        if (nivelCarreira <= 3) return 0;      // Finanças Pessoais
-        if (nivelCarreira <= 6) return 1;      // Gestão Profissional
-        if (nivelCarreira <= 8) return 2;      // Investimentos
-        return 3;                              // Estratégia Corporativa
+    static int Categoria(int nivelCarreira) {
+        if (nivelCarreira <= 3) return 0;
+        if (nivelCarreira <= 6) return 1;
+        if (nivelCarreira <= 8) return 2;
+        return 3;
     }
 
     private IEnumerator FazerPergunta(Player p) {
         int nivelCarreira = p.state.GetCareerLevel();
-        int categoria = ObterCategoriaPorNivelCarreira(nivelCarreira);
-        var perguntas = perguntasPorCategoria[categoria];
-
-        if (perguntas.Count == 0) {
+        int categoria = Categoria(nivelCarreira);
+        Pergunta pergunta = Proxima(categoria);
+        if (pergunta == null) {
             Debug.LogError($"Nenhuma pergunta carregada para categoria {categoria}!");
             yield break;
         }
 
-        int indice = GameRng.Range(0, perguntas.Count);
-        var (pergunta, respostaCorreta, opcoes) = perguntas[indice];
+        var opcoes = new List<string>(pergunta.Opcoes);
+        GameRng.Embaralhar(opcoes);
 
-        string tema;
-        switch (categoria) {
-            case 0: tema = "Finanças Pessoais"; break;
-            case 1: tema = "Gestão Profissional"; break;
-            case 2: tema = "Investimentos"; break;
-            default: tema = "Estratégia Corporativa"; break;
-        }
-
-        // EMBARALHAR AS OPÇÕES ANTES DE EXIBIR
-        List<string> opcoesEmbaralhadas = EmbaralharLista(opcoes);
-
-        ui.Dialogue(tema, pergunta, opcoesEmbaralhadas, true);
+        PerguntaAtual = pergunta;
+        ui.Dialogue(Temas[categoria], pergunta.Texto, opcoes, true);
         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
-
         string respostaJogador = ui.MostRecentDialogueAnswer();
-        if (respostaJogador == respostaCorreta) {
-            // Recompensas escalonadas com o nível de carreira
-            // Antes 3 + nível (~4 moedas) contra ~40/turno de salário: acertar não fazia diferença.
+        PerguntaAtual = null;
+
+        if (respostaJogador == pergunta.Correta) {
             int moedasRecompensa = 6 + 2 * nivelCarreira;
             int bonusFinanceiro = Mathf.RoundToInt(p.state.GetSalary() * 0.05f);
-
-            // Mostra moedas caindo
             for (int i = 0; i < moedasRecompensa; i++) {
                 Instantiate(coinPrefab, transform.position + Vector3.up * 5, Quaternion.identity);
                 yield return new WaitForSeconds(0.2f);
             }
-
-            // Aplicar moedas
-            p.state.changeCoins(moedasRecompensa + bonusFinanceiro);
-
-            ui.Dialogue("Correto!", $"Resposta certa! Você recebeu {moedasRecompensa + bonusFinanceiro} Moedas!", true);
-        }
-        else {
-            string feedback;
-            switch (categoria) {
-                case 0: feedback = "Continue estudando finanças pessoais!"; break;
-                case 1: feedback = "A gestão profissional requer conhecimento constante"; break;
-                case 2: feedback = "Investimentos exigem estudo e experiência"; break;
-                default: feedback = "Estratégias corporativas são complexas, continue aprendendo!"; break;
-            }
-            ui.Dialogue("Ops...", feedback + "\nResposta correta: " + respostaCorreta, true);
+            int total = moedasRecompensa + bonusFinanceiro;
+            p.state.changeCoins(total);
+            string texto = string.IsNullOrEmpty(pergunta.Explicacao) ? "Resposta certa!" : pergunta.Explicacao;
+            ui.Dialogue($"Correto! +{total} Moedas", texto, true);
+        } else {
+            string texto = $"Resposta certa: {pergunta.Correta}";
+            if (!string.IsNullOrEmpty(pergunta.Explicacao)) texto += "\n" + pergunta.Explicacao;
+            ui.Dialogue("Quase!", texto, true);
         }
         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
     }
@@ -126,7 +126,6 @@ public class QuestionSpace : BoardSpace {
     }
 
     public override int AIValue(PlayerState state, List<PlayerState> rivals) {
-        // IA valoriza mais espaços de pergunta em níveis altos
         return 2 + Mathf.Min(state.GetCareerLevel(), 5);
     }
 }

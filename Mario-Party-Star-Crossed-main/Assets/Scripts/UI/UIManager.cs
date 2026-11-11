@@ -599,12 +599,15 @@ public class UIManager : MonoBehaviour {
         } else {
             // BOT (IA)
             if (comTime >= 1.0f) {
-                if (mostRecentPrompt == "Spinner") {
+                // Decide UMA vez por pergunta: este método é chamado por Update e pela corrotina no mesmo quadro;
+                // decidir de novo a cada chamada gastava o GameRng conforme o FPS (dessincroniza o online)
+                // e podia trocar a resposta já dada.
+                if (mostRecentPrompt == "Spinner" && spinning) {
                     spinnerLoc = GameRng.Range(1, 7);
                     mostRecentAns = spinnerChoices[spinnerLoc];
                     spinning = false;
                 }
-                if (mostRecentPrompt == "Options") {
+                if (mostRecentPrompt == "Options" && string.IsNullOrEmpty(mostRecentAns)) {
                     // `choices` é guardada invertida para o layout dos botões; a IA recebe a ordem original
                     // (antes recebia invertida e, sem regra específica, escolhia a ÚLTIMA opção:
                     // "Não, obrigado" na Estrela, "Nao agora" na Universidade...)
@@ -756,7 +759,11 @@ public class UIManager : MonoBehaviour {
                 if (fonte != null) dialogueText.font = fonte;
                 dialogueText.color = new Color(0.96f, 0.98f, 1f, 1f);
                 dialogueText.fontSize = 40;
-                dialogueText.lineSpacing = 1.25f;
+                dialogueText.lineSpacing = 1.15f;
+                // Explicações do quiz chegam a 3 linhas: encolhe só quando não cabe
+                dialogueText.resizeTextForBestFit = true;
+                dialogueText.resizeTextMinSize = 28;
+                dialogueText.resizeTextMaxSize = 40;
                 dialogueText.alignment = TextAnchor.UpperLeft;
                 dialogueText.horizontalOverflow = HorizontalWrapMode.Wrap;
                 dialogueText.verticalOverflow = VerticalWrapMode.Truncate;
@@ -967,6 +974,11 @@ public class UIManager : MonoBehaviour {
         if (btnText != null) {
             TemaUI.EstilizarTexto(btnText, 28, TemaUI.VerdeEscuro, FontStyle.Bold);
             btnText.alignment = TextAnchor.MiddleCenter;
+            // Respostas longas (quiz) encolhem até caber em 2 linhas em vez de serem cortadas
+            btnText.resizeTextForBestFit = true;
+            btnText.resizeTextMinSize = 17;
+            btnText.resizeTextMaxSize = 28;
+            btnText.lineSpacing = 0.9f;
             btnText.horizontalOverflow = HorizontalWrapMode.Wrap;
             btnText.verticalOverflow = VerticalWrapMode.Truncate;
             RectTransform textRT = btnText.GetComponent<RectTransform>();
@@ -1018,8 +1030,8 @@ public class UIManager : MonoBehaviour {
 
         float dialogHeight = 210f;
         float baseGap = 12f;
-        float btnWidth = 440f;
-        float btnHeight = 58f;
+        float btnWidth = 560f;
+        float btnHeight = 64f;
         float btnSpacing = 8f;
 
         GameObject[] botoes = new GameObject[] { optionA, optionB, optionC, optionD, optionE };

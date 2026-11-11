@@ -15,6 +15,9 @@ public abstract class AIBrain {
 
     public abstract string Prompt(string question, List<string> options, int spacesLeft);
 
+    /// <summary>Chamado no começo de cada turno do jogador (zera planos do turno anterior).</summary>
+    public virtual void InicioDoTurno() { }
+
     public int GetValueOfRolling(int n) {
         return game.GetSpaceFromID(state.getSpaceID()).CumulativeValue(state, rivals, n);
     }

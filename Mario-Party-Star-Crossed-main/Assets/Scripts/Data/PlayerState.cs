@@ -35,6 +35,12 @@ public class PlayerState : ISerializationCallbackReceiver {
     [SerializeField] private int educationLevel = 0;
     [SerializeField] private int lapsCompleted = 0;
 
+    // CARTEIRA FINANCEIRA (Banco)
+    [SerializeField] private int poupanca;   // rende juros compostos por turno
+    [SerializeField] private int reserva;    // não rende; paga imprevistos primeiro
+    [SerializeField] private int acoes;      // varia com a Bolsa no fim de cada rodada
+    [SerializeField] private int divida;     // juros por turno; parcela automática no holerite
+
     // Outros campos...
     [SerializeField] private int space;
     [SerializeField] private List<int> coinTracking;
@@ -279,16 +285,127 @@ public class PlayerState : ISerializationCallbackReceiver {
     // Pontuação composta que valoriza todas as mecânicas do jogo:
     //   Estrelas × 100 + Moedas + Nível de Carreira × 50 + Educação × 75
     public int GetFinalScore() {
-        return (stars * 100) + coins + (careerLevel * 50) + (educationLevel * 75);
+        return (stars * 100) + Mathf.Max(0, PatrimonioLiquido) + (careerLevel * 50) + (educationLevel * 75);
     }
 
     public string GetScoreBreakdown() {
         return $"Estrelas: {stars} x100 = {stars * 100}\n" +
-               $"Moedas: {coins}\n" +
+               $"Patrimônio líquido: {PatrimonioLiquido} (moedas + aplicações - dívidas)\n" +
                $"Carreira Nv.{careerLevel} x50 = {careerLevel * 50}\n" +
                $"Educacao Nv.{educationLevel} x75 = {educationLevel * 75}\n" +
                $"_______________________\n" +
                $"TOTAL: {GetFinalScore()} pontos";
+    }
+
+    // ================== CARTEIRA / BANCO ==================
+    public const float JurosPoupanca = 0.03f;      // por turno
+    public const float JurosDivida = 0.08f;        // por turno
+    public const float ParcelaDividaPct = 0.10f;   // parcela mínima automática
+    public const int ParcelaDividaMinima = 5;
+    public const int ValorEmprestimo = 50;
+    public const int LimiteDivida = 300;           // teto de crédito (empréstimos + cheque especial)
+
+    public int GetPoupanca() => poupanca;
+    public int GetReserva() => reserva;
+    public int GetAcoes() => acoes;
+    public int GetDivida() => divida;
+    public int Aplicacoes => poupanca + reserva + acoes;
+    public int PatrimonioLiquido => coins + poupanca + reserva + acoes - divida;
+
+    /// <summary>Move moedas para um produto. Retorna quanto foi movido de fato.</summary>
+    int Aplicar(ref int destino, int valor) {
+        valor = Mathf.Clamp(valor, 0, coins);
+        coins -= valor;
+        destino += valor;
+        return valor;
+    }
+    int Resgatar(ref int origem, int valor) {
+        valor = Mathf.Clamp(valor, 0, origem);
+        origem -= valor;
+        coins = Mathf.Min(coins + valor, 9999);
+        return valor;
+    }
+    public int DepositarPoupanca(int v) => Aplicar(ref poupanca, v);
+    public int SacarPoupanca(int v) => Resgatar(ref poupanca, v);
+    public int GuardarReserva(int v) => Aplicar(ref reserva, v);
+    public int ResgatarReserva(int v) => Resgatar(ref reserva, v);
+    public int ComprarAcoes(int v) => Aplicar(ref acoes, v);
+    public int VenderAcoes(int v) => Resgatar(ref acoes, v);
+
+    public bool PodePegarEmprestimo => divida + ValorEmprestimo <= LimiteDivida;
+    public int PegarEmprestimo() {
+        if (!PodePegarEmprestimo) return 0;
+        divida += ValorEmprestimo;
+        coins = Mathf.Min(coins + ValorEmprestimo, 9999);
+        return ValorEmprestimo;
+    }
+    public int PagarDivida(int v) {
+        v = Mathf.Clamp(v, 0, Mathf.Min(coins, divida));
+        coins -= v;
+        divida -= v;
+        return v;
+    }
+
+    /// <summary>
+    /// Fechamento do mês (início do turno, depois do salário): juros da poupança, juros da dívida e
+    /// parcela automática. Retorna o resumo para o holerite ("" se não houver nada a mostrar).
+    /// </summary>
+    public string ProcessarMesFinanceiro() {
+        var partes = new List<string>();
+        if (poupanca > 0) {
+            int rendimento = Mathf.Max(1, Mathf.RoundToInt(poupanca * JurosPoupanca));
+            poupanca += rendimento;
+            partes.Add($"Poupança +{rendimento}");
+        }
+        if (divida > 0) {
+            int juros = Mathf.Max(1, Mathf.RoundToInt(divida * JurosDivida));
+            divida += juros;
+            int parcela = Mathf.Min(divida, Mathf.Max(ParcelaDividaMinima, Mathf.RoundToInt(divida * ParcelaDividaPct)));
+            int pago = Mathf.Min(parcela, coins);
+            coins -= pago;
+            divida -= pago;
+            partes.Add($"Dívida: juros +{juros}, parcela -{pago}" + (divida > 0 ? $" (resta {divida})" : " (quitada!)"));
+        }
+        return string.Join("  ·  ", partes);
+    }
+
+    /// <summary>
+    /// Paga um imprevisto: primeiro com a reserva de emergência, depois com as moedas;
+    /// o que faltar vira dívida (cheque especial). Retorna como foi pago.
+    /// </summary>
+    public string PagarImprevisto(int valor) {
+        if (valor <= 0) return "";
+        var partes = new List<string>();
+        int daReserva = Mathf.Min(valor, reserva);
+        reserva -= daReserva;
+        valor -= daReserva;
+        if (daReserva > 0) partes.Add($"reserva cobriu {daReserva}");
+        int dasMoedas = Mathf.Min(valor, coins);
+        coins -= dasMoedas;
+        valor -= dasMoedas;
+        if (dasMoedas > 0) partes.Add($"{dasMoedas} das moedas");
+        if (valor > 0) {
+            divida += valor;
+            partes.Add($"{valor} no cheque especial");
+        }
+        return string.Join(", ", partes);
+    }
+
+    /// <summary>Despesa obrigatória (ex.: holerite negativo): moedas e, se faltar, cheque especial.</summary>
+    public int PagarDespesa(int valor) {
+        int dasMoedas = Mathf.Min(valor, coins);
+        coins -= dasMoedas;
+        int falta = valor - dasMoedas;
+        if (falta > 0) divida += falta;
+        return falta;
+    }
+
+    /// <summary>Aplica a variação da Bolsa (%) nas ações.</summary>
+    public int AtualizarAcoes(int variacaoPct) {
+        if (acoes <= 0) return 0;
+        int antes = acoes;
+        acoes = Mathf.Max(0, Mathf.RoundToInt(acoes * (1f + variacaoPct / 100f)));
+        return acoes - antes;
     }
 
     // ================== FUNÇÕES EXISTENTES ==================
