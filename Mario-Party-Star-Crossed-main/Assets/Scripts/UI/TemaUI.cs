@@ -117,7 +117,7 @@ public static class TemaUI {
     /// <summary>Contorno grosso (títulos, números grandes).</summary>
     public static void ContornoTexto(UnityEngine.UI.Text t, Color cor, float espessura = 3f) {
         if (t == null) return;
-        var o = t.GetComponent<UnityEngine.UI.Outline>() ?? t.gameObject.AddComponent<UnityEngine.UI.Outline>();
+        if (!t.TryGetComponent(out UnityEngine.UI.Outline o)) o = t.gameObject.AddComponent<UnityEngine.UI.Outline>();
         o.effectColor = cor;
         o.effectDistance = new Vector2(espessura, -espessura);
     }

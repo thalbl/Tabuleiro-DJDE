@@ -215,7 +215,7 @@ public class MenuConfiguracoes : MonoBehaviour {
 
     // ------------------------------------------------------------------ helpers de layout
     static void Altura(GameObject go, float altura) {
-        var le = go.GetComponent<UnityEngine.UI.LayoutElement>() ?? go.AddComponent<UnityEngine.UI.LayoutElement>();
+        if (!go.TryGetComponent(out UnityEngine.UI.LayoutElement le)) le = go.AddComponent<UnityEngine.UI.LayoutElement>();
         le.minHeight = altura; le.preferredHeight = altura; le.flexibleHeight = 0;
     }
 

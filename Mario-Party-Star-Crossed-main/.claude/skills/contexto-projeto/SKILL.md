@@ -259,6 +259,11 @@ O enum mantém nomes originais; o texto exibido vem de `ItemSpace.itemNames[(int
 - **IA**: `QuestionSpace.PerguntaAtual` fica setada enquanto a pergunta está na tela; `EasyBrain.Prompt` acerta com chance 35% + 15% × nível de educação (via `GameRng`).
 - **Bots decidem uma vez por prompt**: o ramo de bot do `UIManager` só chama `Prompt` com `mostRecentAns` vazio (antes era chamado várias vezes no mesmo frame e consumia `GameRng` a mais). Botões de opção: 560×64 com best-fit 17–28.
 
+## 9d. Como Jogar (TutorialManager, 2026-11-10)
+- Janela própria (`[ComoJogar]`, canvas overlay ordem 950) feita com o TemaUI: 10 páginas com título, subtítulo e linhas "ícone + rótulo + descrição"; Voltar/Próximo ("Começar!" na última), bolinhas clicáveis, ✕, teclas ←/→/Enter/Esc. Abre pelo botão do menu e na primeira execução (`TutorialVisto`).
+- Números vêm das constantes (`PlayerState.JurosPoupanca`, `JurosDivida`, `ValorEmprestimo`, `LimiteDivida`, `CasasPorPromocaoExperiencia`) e os itens de `ItemSpace.itemNames/itemDescriptions` + `texture/icons/{BoardItem}`: ao mudar uma regra, confira os textos fixos das páginas (pontuação, casas, quiz).
+- Máx. ~7 linhas por página (a altura da linha se ajusta). Em Unity, não use `GetComponent<T>() ?? AddComponent<T>()` (o "null" do Unity não é null em C#); use `TryGetComponent`.
+
 ## 10. Convenções ao contribuir
 
 - Toda string de jogador em **PT-BR** com acentuação correta; arquivos UTF-8.

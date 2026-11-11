@@ -7,15 +7,15 @@ public class EducationSpace : BoardSpace {
 
     private static readonly string[] NiveisEducacao = {
         "Sem formalidade",
-        "Ensino Medio",
+        "Ensino Médio",
         "Ensino Superior",
-        "Pos-graduacao"
+        "Pós-graduação"
     };
 
     private string GetNivelNome(int nivel) {
         if (nivel >= 0 && nivel < NiveisEducacao.Length)
             return NiveisEducacao[nivel];
-        return "Avancada";
+        return "Avançada";
     }
 
     public override IEnumerator land(Player p) {
@@ -26,8 +26,8 @@ public class EducationSpace : BoardSpace {
         // Já está no nível máximo
         if (nivelAtual >= 3) {
             ui.Dialogue("Universidade",
-                "Parabens! Voce ja concluiu a Pos-graduacao!\n" +
-                "Nao ha mais niveis de educacao disponiveis.", true);
+                "Parabéns! Você já concluiu a Pós-graduação!\n" +
+                "Não há mais níveis de educação disponíveis.", true);
             yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
             doneLanding = true;
             yield break;
@@ -36,9 +36,9 @@ public class EducationSpace : BoardSpace {
         // Sem moedas suficientes
         if (p.state.getCoins() < educationCost) {
             ui.Dialogue("Universidade",
-                $"Investir em educacao custa {educationCost} Moedas.\n" +
+                $"Investir em educação custa {educationCost} Moedas.\n" +
                 $"Seu saldo: {p.state.getCoins()} Moedas\n\n" +
-                "Voce nao tem Moedas suficientes.", true);
+                "Você não tem Moedas suficientes.", true);
             yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
             doneLanding = true;
             yield break;
@@ -47,11 +47,11 @@ public class EducationSpace : BoardSpace {
         // Oferecer a escolha ao jogador
         string proximoNivel = GetNivelNome(nivelAtual + 1);
         ui.Dialogue("Universidade",
-            $"Investir {educationCost} Moedas em educacao?\n\n" +
-            $"Nivel atual: {GetNivelNome(nivelAtual)}\n" +
-            $"Proximo: {proximoNivel}\n\n" +
-            $"(Educacao ajuda na sua pontuacao final!)",
-            new List<string>() { "Investir!", "Nao agora" }, true);
+            $"Investir {educationCost} Moedas em educação?\n\n" +
+            $"Nível atual: {GetNivelNome(nivelAtual)}\n" +
+            $"Próximo: {proximoNivel}\n\n" +
+            $"(Educação ajuda na sua pontuação final!)",
+            new List<string>() { "Investir!", "Agora não" }, true);
         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
 
         if (ui.MostRecentDialogueAnswer() == "Investir!") {
@@ -59,13 +59,13 @@ public class EducationSpace : BoardSpace {
             p.state.IncreaseEducation();
 
             ui.Dialogue("Formatura!",
-                $"Voce agora tem: {proximoNivel}!\n" +
+                $"Você agora tem: {proximoNivel}!\n" +
                 $"-{educationCost} Moedas investidas\n" +
-                $"+75 pontos na pontuacao final!", true);
+                $"+75 pontos na pontuação final!", true);
         } else {
             ui.Dialogue("Universidade",
-                "Voce decidiu economizar por enquanto.\n" +
-                "A universidade estara aqui quando voltar!", true);
+                "Você decidiu economizar por enquanto.\n" +
+                "A universidade estará aqui quando voltar!", true);
         }
 
         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());

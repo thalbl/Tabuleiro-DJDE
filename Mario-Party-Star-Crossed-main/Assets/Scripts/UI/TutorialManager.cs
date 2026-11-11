@@ -1,193 +1,209 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
 /// <summary>
-/// Tutorial interativo com slides estilo "Cartilha" que explica como o jogo funciona.
-/// Adiciona um botão "Como Jogar" no menu principal.
-/// Pode ser chamado do MainMenuBuilder ou exibido automaticamente no primeiro jogo.
+/// "Como Jogar": janela de páginas aberta pelo botão do menu principal (e na primeira vez que o jogo abre).
+/// Construída em código com o TemaUI (mesmo padrão do menu de Configurações). Cada página tem título,
+/// subtítulo e linhas "ícone + rótulo + descrição". Os itens vêm direto de ItemSpace.itemNames/itemDescriptions
+/// e os ícones de Resources/texture/icons, então o texto acompanha o jogo.
+/// Navegação: botões Voltar/Próximo, bolinhas clicáveis, setas ←/→, Enter e Esc.
 /// </summary>
 public class TutorialManager : MonoBehaviour
 {
-    // =================== CORES (Consistentes com MainMenuBuilder) ===================
-    private Color corVerdeFundo = new Color(0.09f, 0.40f, 0.20f, 1f);      // #166534
-    private Color corVerdeClaro = new Color(0.86f, 0.99f, 0.91f, 1f);      // #dcfce7
-    private Color corBordaEscura = new Color(0.02f, 0.31f, 0.23f, 1f);     // #064e3b
-    private Color corCardFundo = new Color(0.94f, 0.99f, 0.96f, 1f);       // #f0fdf4
-    private Color corDourado = new Color(0.98f, 0.75f, 0.14f, 1f);         // #fbbf24
-    private Color corDouradoBorda = new Color(0.47f, 0.21f, 0.06f, 1f);    // #78350f
-    private Color corTextoEscuro = new Color(0.13f, 0.13f, 0.13f, 1f);
-    private Color corDestaque = new Color(0.09f, 0.40f, 0.20f, 1f);        // #166534
-    private Color corVermelho = new Color(0.94f, 0.27f, 0.27f, 1f);        // #ef4444
-    private Color corAzul = new Color(0.23f, 0.51f, 0.96f, 1f);            // #3b82f6
-    private Color corOverlay = new Color(0, 0, 0, 0.7f);
-
-    // =================== ESTADO ===================
-    private Font fonteFredoka;
-    private GameObject overlayObj;
-    private GameObject cardObj;
-    private RectTransform cardRT;
-    private Text txtTitulo;
-    private Text txtConteudo;
-    private Text txtPagina;
-    private Text txtIcone;
-    private Image headerImage;
-    private int paginaAtual = 0;
-
-    // =================== DADOS DO TUTORIAL ===================
-    private struct SlideTutorial
+    // =================== MODELO ===================
+    private class Linha
     {
-        public string icone;
-        public string titulo;
-        public string conteudo;
-        public Color corHeader;
+        public string icone;    // caminho em Resources (Texture2D) ou null
+        public string glifo;    // texto dentro do círculo quando não há ícone
+        public Color cor;
+        public string rotulo;
+        public string texto;
+    }
 
-        public SlideTutorial(string icone, string titulo, string conteudo, Color corHeader)
+    private class Pagina
+    {
+        public string titulo;
+        public string subtitulo;
+        public string icone;
+        public string glifo;
+        public Color cor;
+        public List<Linha> linhas = new List<Linha>();
+
+        public Pagina L(Color cor, string glifo, string rotulo, string texto)
         {
-            this.icone = icone;
-            this.titulo = titulo;
-            this.conteudo = conteudo;
-            this.corHeader = corHeader;
+            linhas.Add(new Linha { cor = cor, glifo = glifo, rotulo = rotulo, texto = texto });
+            return this;
+        }
+
+        public Pagina I(string icone, Color cor, string rotulo, string texto)
+        {
+            linhas.Add(new Linha { icone = icone, cor = cor, rotulo = rotulo, texto = texto });
+            return this;
         }
     }
 
-    private List<SlideTutorial> slides;
+    private const string IconeEstrela = "texture/icons/star";
+    private const string IconeMoeda = "texture/icons/coin";
+    private const string PastaIcones = "texture/icons/";
+
+    // Layout (resolução de referência 1920x1080)
+    private const float LarguraJanela = 1300f;
+    private const float AlturaJanela = 960f;
+    private const float AlturaCorpo = 620f;
+    private const float EspacoLinhas = 10f;
+
+    private List<Pagina> paginas;
+    private int paginaAtual;
+
+    // =================== UI ===================
+    private GameObject raiz;
+    private RectTransform janelaRT;
+    private CanvasGroup conteudoGrupo;
+    private Image iconeCirculo;
+    private RawImage iconeImagem;
+    private Text iconeGlifo;
+    private Text txtTitulo, txtSubtitulo, txtContador;
+    private RectTransform corpo;
+    private Button btnVoltar, btnProximo;
+    private Text txtProximo;
+    private readonly List<Image> bolinhas = new List<Image>();
+    private bool trocando;
+    private bool fechando;
 
     void Awake()
     {
-        CriarSlides();
+        CriarPaginas();
     }
 
-    private void CarregarFonte()
+    // =================== CONTEÚDO ===================
+    private void CriarPaginas()
     {
-        if (fonteFredoka != null) return;
-        fonteFredoka = Resources.Load<Font>("font/Fredoka-VariableFont_wdth,wght");
-        if (fonteFredoka == null) fonteFredoka = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (fonteFredoka == null) fonteFredoka = Font.CreateDynamicFontFromOSFont("Arial", 24);
+        Color ouro = TemaUI.Ouro, verde = TemaUI.Verde, azul = TemaUI.Azul, vermelho = TemaUI.Vermelho;
+        Color roxo = TemaUI.Hex("#A855F7"), ciano = TemaUI.Hex("#06B6D4"), laranja = TemaUI.Hex("#F97316");
+
+        paginas = new List<Pagina>();
+
+        paginas.Add(new Pagina {
+            titulo = "Bem-vindo ao Caminho do Sucesso!",
+            subtitulo = "Ande pelo tabuleiro, cuide do seu dinheiro e faça a carreira crescer. Cada turno é um mês.",
+            icone = IconeEstrela, cor = ouro
+        }
+        .L(ouro, "1", "Meta de carreira", "Chegue ao nível de carreira pedido pelo mapa e vença na hora.")
+        .L(azul, "2", "Fim das rodadas", "Se ninguém chegar à meta, vence quem tiver a maior pontuação.")
+        .I(IconeEstrela, ouro, "Pontuação", "Estrelas × 100 + patrimônio líquido + carreira × 50 + educação × 75.")
+        .I(IconeMoeda, verde, "Patrimônio líquido", "Moedas + poupança + reserva + ações, menos as dívidas."));
+
+        paginas.Add(new Pagina {
+            titulo = "Seu turno",
+            subtitulo = "Todo turno começa com o holerite. Depois, escolha o que fazer.",
+            glifo = "!", cor = verde
+        }
+        .I(IconeMoeda, verde, "Holerite", "Salário menos despesas, mais rendimentos e menos a parcela das dívidas.")
+        .L(ouro, "▶", "Rolar dados", "Anda de 1 a 10 casas. Algumas casas agem quando você passa por elas.")
+        .I(PastaIcones + BoardItem.Mushroom, laranja, "Usar item", "Um item por turno, antes de rolar os dados.")
+        .L(ciano, "$", "Banco", "Guarde, invista, monte a reserva ou pegue um empréstimo.")
+        .L(azul, "#", "Ver tabuleiro", "Olhe o mapa inteiro para planejar o caminho."));
+
+        paginas.Add(new Pagina {
+            titulo = "Banco e investimentos",
+            subtitulo = "Dinheiro parado não cresce, e dívida cresce sozinha.",
+            icone = IconeMoeda, cor = ciano
+        }
+        .L(verde, "%", "Poupança", $"Rende {PlayerState.JurosPoupanca * 100:0}% por turno, com juros compostos. Pode sacar quando quiser.")
+        .L(azul, "+", "Reserva de emergência", "Não rende, mas paga os imprevistos das casas vermelhas antes do seu caixa.")
+        .L(roxo, "↑", "Ações", "Sobem ou caem com a Bolsa a cada rodada (de −12% a +15%). Risco e retorno.")
+        .L(laranja, "−", "Empréstimo", $"+{PlayerState.ValorEmprestimo} Moedas na hora, {PlayerState.JurosDivida * 100:0}% de juros por turno e parcela automática.")
+        .L(vermelho, "!", "Cheque especial", $"Se faltar dinheiro, a diferença vira dívida (até {PlayerState.LimiteDivida} no total)."));
+
+        paginas.Add(new Pagina {
+            titulo = "Casas do tabuleiro",
+            subtitulo = "O efeito depende da casa onde você para e muda conforme a sua carreira.",
+            glifo = "#", cor = azul
+        }
+        .L(azul, "+", "Casa azul", "Bônus, aumento de salário ou participação nos lucros.")
+        .L(vermelho, "−", "Casa vermelha", "Imprevistos, cortes e multas. A reserva paga primeiro.")
+        .L(roxo, "?", "Pergunta", "Quiz de educação financeira: acerte e ganhe Moedas.")
+        .I(IconeEstrela, ouro, "Estrela", "Compre Estrelas (100 pontos cada). Cada nova Estrela custa mais.")
+        .I("texture/space/item", laranja, "Consultor e Loja", "Ganhe ou compre itens para a jornada."));
+
+        paginas.Add(new Pagina {
+            titulo = "Carreira e educação",
+            subtitulo = "Sua profissão é sorteada no começo e define salário e despesas.",
+            glifo = "↑", cor = verde
+        }
+        .L(verde, "★", "Portão de carreira", "Passe com os requisitos (nível, educação e reserva) para ser promovido.")
+        .L(azul, "30", "Experiência", $"A cada {PlayerState.CasasPorPromocaoExperiencia} casas andadas você ganha uma promoção.")
+        .L(roxo, "U", "Universidade", "Invista Moedas para subir: Ensino Médio, Superior e Pós-graduação.")
+        .L(ouro, "?", "Bifurcação", "Uma pergunta de perfil decide o caminho. Não há resposta errada."));
+
+        paginas.Add(new Pagina {
+            titulo = "Perguntas do quiz",
+            subtitulo = "Aprender também dá dinheiro. O tema acompanha a sua carreira.",
+            glifo = "?", cor = roxo
+        }
+        .L(roxo, "1", "Quatro temas", "Finanças Pessoais, Trabalho e Crédito, Investimentos, Negócios e Estratégia.")
+        .I(IconeMoeda, verde, "Acertou", "Ganha Moedas: quanto maior o nível do tema e o salário, maior o prêmio.")
+        .L(vermelho, "✕", "Errou", "Você vê a resposta certa e uma explicação curta.")
+        .L(azul, "↻", "Sem repetição", "Uma pergunta só volta depois que todas do tema saírem."));
+
+        AdicionarPaginaItens("Itens de movimento", "Você carrega até 3 itens e usa 1 por turno.", laranja,
+            BoardItem.Mushroom, BoardItem.GoldenMushroom, BoardItem.MagicMushroom,
+            BoardItem.BowserSuit, BoardItem.MagicLamp, BoardItem.WarpPipe);
+
+        AdicionarPaginaItens("Itens contra rivais", "Atrapalhe a vida financeira dos adversários.", vermelho,
+            BoardItem.PoisonMushroom, BoardItem.TweesterTotem, BoardItem.BooBell,
+            BoardItem.DuelingGlove, BoardItem.ChompCall, BoardItem.PlunderChest);
+
+        AdicionarPaginaItens("Itens de proteção e renda", "Guarde para se proteger ou use para ganhar Moedas.", verde,
+            BoardItem.Gaddlight, BoardItem.SkeletonKey, BoardItem.GoldenDrink, BoardItem.DoubleStarCard,
+            BoardItem.ChompTreat, BoardItem.WigglerWhistle, BoardItem.VacPack);
+
+        paginas.Add(new Pagina {
+            titulo = "Dicas para vencer",
+            subtitulo = "Boa sorte no Caminho do Sucesso!",
+            icone = IconeEstrela, cor = ouro
+        }
+        .L(verde, "1", "Monte a reserva primeiro", "Ela segura as casas vermelhas sem tirar do seu caixa.")
+        .L(vermelho, "2", "Fuja das dívidas", "Juros de 8% por turno comem o patrimônio rápido.")
+        .L(roxo, "3", "Estude", "Educação abre o portão de carreira e vale pontos no final.")
+        .L(ouro, "4", "Compre Estrelas com a sobra", "Cada uma vale 100 pontos, mas não fique sem reserva.")
+        .L(azul, "5", "Mire na meta", "Chegar ao nível de carreira do mapa encerra a partida na hora."));
     }
 
-    // =================== CONTEÚDO DOS SLIDES ===================
-    private void CriarSlides()
+    private void AdicionarPaginaItens(string titulo, string subtitulo, Color cor, params BoardItem[] itens)
     {
-        slides = new List<SlideTutorial>
+        var p = new Pagina { titulo = titulo, subtitulo = subtitulo, icone = PastaIcones + itens[0], cor = cor };
+        foreach (BoardItem item in itens)
         {
-            new SlideTutorial(
-                "?",
-                "Bem-vindo ao Caminho do Sucesso!",
-                "Ande pelo tabuleiro, cuide do seu dinheiro " +
-                "e faça sua carreira crescer.\n\n" +
-                "COMO VENCER: chegue à meta de carreira do mapa " +
-                "e vença na hora, ou tenha a maior pontuação " +
-                "quando as rodadas acabarem.\n\n" +
-                "PONTOS: Estrelas x100 + Patrimônio + Carreira x50 + Educação x75",
-                corVerdeFundo
-            ),
-
-            new SlideTutorial(
-                "!",
-                "Seu Turno",
-                "No começo do turno chega o HOLERITE: salário menos " +
-                "despesas, mais os juros das suas aplicações e dívidas.\n\n" +
-                "Depois você escolhe:\n" +
-                "ROLAR DADOS - anda pelo tabuleiro\n" +
-                "USAR ITEM - usa um item do bolso\n" +
-                "BANCO - aplica, investe ou pega empréstimo\n" +
-                "VER TABULEIRO - olha o mapa inteiro",
-                corVerdeFundo
-            ),
-
-            new SlideTutorial(
-                "$",
-                "Banco e Investimentos",
-                "POUPANÇA - rende 3% por turno (juros compostos).\n\n" +
-                "RESERVA DE EMERGÊNCIA - não rende, mas paga os " +
-                "imprevistos das casas vermelhas antes do seu dinheiro.\n\n" +
-                "AÇÕES - sobem ou caem com a Bolsa a cada rodada.\n\n" +
-                "EMPRÉSTIMO - +50 na hora, 8% de juros por turno. " +
-                "Se faltar dinheiro, a diferença vira dívida (cheque especial)!",
-                corDourado
-            ),
-
-            new SlideTutorial(
-                "#",
-                "Tipos de Casas",
-                "AZUL - bônus, aumento ou participação nos lucros\n" +
-                "VERMELHA - imprevistos, cortes e multas\n" +
-                "PERGUNTA - acerte e ganhe Moedas\n" +
-                "UNIVERSIDADE - invista em educação\n" +
-                "CARREIRA - com os requisitos, é promovido\n" +
-                "ESTRELA - compre Estrelas (cada uma custa mais)\n" +
-                "LOJA e CONSULTOR - itens para a jornada",
-                corAzul
-            ),
-
-            new SlideTutorial(
-                "%",
-                "Itens de Movimento",
-                "Você carrega até 3 itens e usa 1 por turno:\n\n" +
-                "COFRINHO - rola 2 dados\n" +
-                "SUPER DADO - rola 3 dados\n" +
-                "FOGUETE - você escolhe o número do dado\n" +
-                "TRAJE DE EXECUTIVO - 5 dados de 1 a 3 e " +
-                "cobra 20 Moedas de quem você alcançar",
-                corVermelho
-            ),
-
-            new SlideTutorial(
-                "%",
-                "Itens Estratégicos",
-                "BURACO NO BOLSO - um rival só rola de 1 a 3\n" +
-                "PORTAL MÁGICO - troca de lugar com um rival\n" +
-                "VENTANIA - manda um rival para longe\n" +
-                "LÂMPADA MÁGICA - leva você até a Estrela\n" +
-                "ESPIÃO CORPORATIVO - desvia Moedas ou uma Estrela\n" +
-                "ESCUDO PROTETOR - protege do Espião",
-                corVermelho
-            ),
-
-            new SlideTutorial(
-                "~",
-                "Carreira e Educação",
-                "Sua profissão define salário e despesas.\n\n" +
-                "Você é promovido ao passar pelo portão de CARREIRA " +
-                "com os requisitos (nível, educação e dinheiro guardado) " +
-                "e também por EXPERIÊNCIA, a cada 30 casas andadas.\n\n" +
-                "Na UNIVERSIDADE você sobe a educação: Ensino Médio, " +
-                "Superior e Pós-graduação.",
-                corDestaque
-            ),
-
-            new SlideTutorial(
-                ">",
-                "Pronto para Jogar!",
-                "1. Confira o holerite\n" +
-                "2. Monte sua reserva antes de investir\n" +
-                "3. Evite dívidas: os juros comem seu patrimônio\n" +
-                "4. Compre Estrelas quando o dinheiro sobrar\n" +
-                "5. Estude e avance na carreira até a meta\n\n" +
-                "Boa sorte no Caminho do Sucesso!",
-                corDourado
-            )
-        };
+            int i = (int)item;
+            string nome = i < ItemSpace.itemNames.Count ? ItemSpace.itemNames[i] : item.ToString();
+            string desc = i < ItemSpace.itemDescriptions.Count ? ItemSpace.itemDescriptions[i] : "";
+            p.I(PastaIcones + item, cor, nome, desc);
+        }
+        paginas.Add(p);
     }
 
     // =================== API PÚBLICA ===================
     public void MostrarTutorial()
     {
+        if (raiz != null) Destroy(raiz);
         paginaAtual = 0;
-        if (overlayObj != null) Destroy(overlayObj);
-        CarregarFonte();
-        ConstruirUI();
-        AtualizarSlide();
+        fechando = false;
+        trocando = false;
+        Construir();
+        MostrarPagina();
         StartCoroutine(AnimarAbertura());
     }
 
     public void FecharTutorial()
     {
-        StartCoroutine(AnimarFechamento());
-        // Marcar que o jogador já viu o tutorial
+        if (raiz == null || fechando) return;
+        fechando = true;
         PlayerPrefs.SetInt("TutorialVisto", 1);
+        StartCoroutine(AnimarFechamento());
     }
 
     public static bool JaViuTutorial()
@@ -195,301 +211,376 @@ public class TutorialManager : MonoBehaviour
         return PlayerPrefs.GetInt("TutorialVisto", 0) == 1;
     }
 
-    // =================== CONSTRUÇÃO DA UI ===================
-    private void ConstruirUI()
+    public bool Aberto => raiz != null && !fechando;
+
+    void Update()
     {
-        Canvas canvas = FindObjectOfType<Canvas>();
-        if (canvas == null) return;
-
-        // --- Overlay escuro ---
-        overlayObj = new GameObject("TutorialOverlay");
-        overlayObj.transform.SetParent(canvas.transform, false);
-        RectTransform overlayRT = overlayObj.AddComponent<RectTransform>();
-        Expandir(overlayRT);
-        Image overlayImg = overlayObj.AddComponent<Image>();
-        overlayImg.color = corOverlay;
-
-        // --- Card Principal ---
-        cardObj = new GameObject("TutorialCard");
-        cardObj.transform.SetParent(overlayObj.transform, false);
-        cardRT = cardObj.AddComponent<RectTransform>();
-        cardRT.anchorMin = new Vector2(0.5f, 0.5f);
-        cardRT.anchorMax = new Vector2(0.5f, 0.5f);
-        cardRT.sizeDelta = new Vector2(700, 550);
-        cardRT.anchoredPosition = Vector2.zero;
-
-        Image cardImg = cardObj.AddComponent<Image>();
-        cardImg.color = corCardFundo;
-        Outline cardOutline = cardObj.AddComponent<Outline>();
-        cardOutline.effectColor = corBordaEscura;
-        cardOutline.effectDistance = new Vector2(4, -4);
-        Shadow cardShadow = cardObj.AddComponent<Shadow>();
-        cardShadow.effectColor = corBordaEscura;
-        cardShadow.effectDistance = new Vector2(-6, -8);
-
-        // --- Header (título + ícone) ---
-        GameObject header = new GameObject("Header");
-        header.transform.SetParent(cardObj.transform, false);
-        RectTransform headerRT = header.AddComponent<RectTransform>();
-        headerRT.anchorMin = new Vector2(0, 1);
-        headerRT.anchorMax = new Vector2(1, 1);
-        headerRT.sizeDelta = new Vector2(0, 100);
-        headerRT.anchoredPosition = new Vector2(0, -50);
-        headerImage = header.AddComponent<Image>();
-        headerImage.color = corVerdeFundo;
-
-        // Ícone do slide
-        GameObject iconeObj = new GameObject("Icone");
-        iconeObj.transform.SetParent(header.transform, false);
-        RectTransform iconeRT = iconeObj.AddComponent<RectTransform>();
-        iconeRT.anchorMin = new Vector2(0, 0.5f);
-        iconeRT.anchorMax = new Vector2(0, 0.5f);
-        iconeRT.sizeDelta = new Vector2(60, 60);
-        iconeRT.anchoredPosition = new Vector2(50, 0);
-
-        Image iconeBg = iconeObj.AddComponent<Image>();
-        iconeBg.color = new Color(1, 1, 1, 0.2f);
-
-        // Texto do ícone (filho separado — Image e Text não podem coexistir)
-        GameObject iconeTxtObj = new GameObject("IconeTexto");
-        iconeTxtObj.transform.SetParent(iconeObj.transform, false);
-        RectTransform iconeTxtRT = iconeTxtObj.AddComponent<RectTransform>();
-        iconeTxtRT.anchorMin = Vector2.zero;
-        iconeTxtRT.anchorMax = Vector2.one;
-        iconeTxtRT.sizeDelta = Vector2.zero;
-        iconeTxtRT.anchoredPosition = Vector2.zero;
-
-        txtIcone = iconeTxtObj.AddComponent<Text>();
-        txtIcone.font = fonteFredoka;
-        txtIcone.fontSize = 36;
-        txtIcone.fontStyle = FontStyle.Bold;
-        txtIcone.alignment = TextAnchor.MiddleCenter;
-        txtIcone.color = Color.white;
-        txtIcone.raycastTarget = false;
-
-        // Título do slide
-        GameObject tituloObj = new GameObject("Titulo");
-        tituloObj.transform.SetParent(header.transform, false);
-        RectTransform tituloRT = tituloObj.AddComponent<RectTransform>();
-        tituloRT.anchorMin = new Vector2(0, 0);
-        tituloRT.anchorMax = new Vector2(1, 1);
-        tituloRT.offsetMin = new Vector2(90, 0);
-        tituloRT.offsetMax = new Vector2(-20, 0);
-
-        txtTitulo = tituloObj.AddComponent<Text>();
-        txtTitulo.font = fonteFredoka;
-        txtTitulo.fontSize = 32;
-        txtTitulo.fontStyle = FontStyle.Bold;
-        txtTitulo.alignment = TextAnchor.MiddleLeft;
-        txtTitulo.color = Color.white;
-        Shadow titleShadow = tituloObj.AddComponent<Shadow>();
-        titleShadow.effectColor = corBordaEscura;
-        titleShadow.effectDistance = new Vector2(2, -2);
-
-        // --- Conteúdo ---
-        GameObject conteudoObj = new GameObject("Conteudo");
-        conteudoObj.transform.SetParent(cardObj.transform, false);
-        RectTransform conteudoRT = conteudoObj.AddComponent<RectTransform>();
-        conteudoRT.anchorMin = new Vector2(0, 0);
-        conteudoRT.anchorMax = new Vector2(1, 1);
-        conteudoRT.offsetMin = new Vector2(35, 90);  // Bottom + padding
-        conteudoRT.offsetMax = new Vector2(-35, -115); // Top abaixo do header
-
-        txtConteudo = conteudoObj.AddComponent<Text>();
-        txtConteudo.font = fonteFredoka;
-        txtConteudo.fontSize = 24;
-        txtConteudo.fontStyle = FontStyle.Normal;
-        txtConteudo.alignment = TextAnchor.UpperLeft;
-        txtConteudo.color = corTextoEscuro;
-        txtConteudo.lineSpacing = 1.1f;
-        txtConteudo.horizontalOverflow = HorizontalWrapMode.Wrap;
-        txtConteudo.verticalOverflow = VerticalWrapMode.Overflow;
-
-        // --- Barra inferior (navegação) ---
-        GameObject footer = new GameObject("Footer");
-        footer.transform.SetParent(cardObj.transform, false);
-        RectTransform footerRT = footer.AddComponent<RectTransform>();
-        footerRT.anchorMin = new Vector2(0, 0);
-        footerRT.anchorMax = new Vector2(1, 0);
-        footerRT.sizeDelta = new Vector2(0, 70);
-        footerRT.anchoredPosition = new Vector2(0, 35);
-
-        Image footerBg = footer.AddComponent<Image>();
-        footerBg.color = corVerdeClaro;
-
-        // Indicador de página
-        GameObject paginaObj = new GameObject("Pagina");
-        paginaObj.transform.SetParent(footer.transform, false);
-        RectTransform paginaRT = paginaObj.AddComponent<RectTransform>();
-        paginaRT.anchorMin = new Vector2(0.5f, 0.5f);
-        paginaRT.anchorMax = new Vector2(0.5f, 0.5f);
-        paginaRT.sizeDelta = new Vector2(200, 40);
-        paginaRT.anchoredPosition = Vector2.zero;
-
-        txtPagina = paginaObj.AddComponent<Text>();
-        txtPagina.font = fonteFredoka;
-        txtPagina.fontSize = 22;
-        txtPagina.fontStyle = FontStyle.Bold;
-        txtPagina.alignment = TextAnchor.MiddleCenter;
-        txtPagina.color = corDestaque;
-
-        // Botão Anterior
-        CriarBotaoNav(footer.transform, "<", new Vector2(60, 0), () => SlideAnterior());
-
-        // Botão Próximo / Fechar
-        CriarBotaoNav(footer.transform, ">", new Vector2(-60, 0), () => ProximoSlide(), true);
-    }
-
-    // =================== BOTÃO DE NAVEGAÇÃO ===================
-    private GameObject CriarBotaoNav(Transform parent, string texto, Vector2 pos, UnityEngine.Events.UnityAction onClick, bool ladoDireito = false)
-    {
-        GameObject btnObj = new GameObject("Btn_" + texto);
-        btnObj.transform.SetParent(parent, false);
-        RectTransform btnRT = btnObj.AddComponent<RectTransform>();
-        btnRT.anchorMin = ladoDireito ? new Vector2(1, 0.5f) : new Vector2(0, 0.5f);
-        btnRT.anchorMax = ladoDireito ? new Vector2(1, 0.5f) : new Vector2(0, 0.5f);
-        btnRT.sizeDelta = new Vector2(90, 50);
-        btnRT.anchoredPosition = pos;
-
-        Image btnImg = btnObj.AddComponent<Image>();
-        btnImg.color = corDourado;
-        Outline btnOutline = btnObj.AddComponent<Outline>();
-        btnOutline.effectColor = corDouradoBorda;
-        btnOutline.effectDistance = new Vector2(2, -2);
-
-        Button btn = btnObj.AddComponent<Button>();
-        btn.targetGraphic = btnImg;
-        btn.onClick.AddListener(onClick);
-
-        // Desativar transição de cor padrão
-        ColorBlock cb = btn.colors;
-        cb.normalColor = Color.white; cb.highlightedColor = Color.white;
-        cb.pressedColor = new Color(0.9f, 0.9f, 0.9f); cb.selectedColor = Color.white;
-        btn.colors = cb;
-
-        GameObject txtObj = new GameObject("Texto");
-        txtObj.transform.SetParent(btnObj.transform, false);
-        RectTransform txtRT = txtObj.AddComponent<RectTransform>();
-        Expandir(txtRT);
-
-        Text btnText = txtObj.AddComponent<Text>();
-        btnText.text = texto;
-        btnText.font = fonteFredoka;
-        btnText.fontSize = 30;
-        btnText.fontStyle = FontStyle.Bold;
-        btnText.alignment = TextAnchor.MiddleCenter;
-        btnText.color = corDouradoBorda;
-
-        // Efeito hover
-        MenuButtonEffect fx = btnObj.AddComponent<MenuButtonEffect>();
-        fx.corNormal = corDourado;
-        fx.corHover = new Color(1f, 0.85f, 0.35f, 1f);
-        fx.corTextoNormal = corDouradoBorda;
-        fx.corTextoHover = corDouradoBorda;
-        fx.escalaHover = 1.08f;
-        fx.subirHover = 3f;
-
-        return btnObj;
+        if (!Aberto) return;
+        if (Input.GetKeyDown(KeyCode.Escape)) FecharTutorial();
+        else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) Proximo();
+        else if (Input.GetKeyDown(KeyCode.LeftArrow)) Voltar();
     }
 
     // =================== NAVEGAÇÃO ===================
-    private void ProximoSlide()
+    private void Proximo()
     {
-        if (paginaAtual < slides.Count - 1)
+        if (paginaAtual < paginas.Count - 1) IrPara(paginaAtual + 1);
+        else FecharTutorial();
+    }
+
+    private void Voltar()
+    {
+        if (paginaAtual > 0) IrPara(paginaAtual - 1);
+    }
+
+    private void IrPara(int indice)
+    {
+        if (trocando || indice == paginaAtual || indice < 0 || indice >= paginas.Count) return;
+        StartCoroutine(TrocarPagina(indice));
+    }
+
+    // =================== CONSTRUÇÃO ===================
+    private void Construir()
+    {
+        raiz = new GameObject("[ComoJogar]", typeof(RectTransform));
+        var canvas = raiz.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 950;
+        var scaler = raiz.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.matchWidthOrHeight = 0.5f;
+        raiz.AddComponent<GraphicRaycaster>();
+
+        // Véu: escurece e bloqueia cliques no menu
+        var veu = TemaUI.Painel_(raiz.transform, "Veu", TemaUI.Veu);
+        veu.sprite = null;
+        TemaUI.Esticar(veu.rectTransform);
+
+        // Janela
+        var janela = TemaUI.Painel_(veu.transform, "Janela", TemaUI.Janela);
+        janelaRT = janela.rectTransform;
+        janelaRT.anchorMin = janelaRT.anchorMax = janelaRT.pivot = new Vector2(0.5f, 0.5f);
+        janelaRT.sizeDelta = new Vector2(LarguraJanela, AlturaJanela);
+        var borda = janela.gameObject.AddComponent<Outline>();
+        borda.effectColor = new Color(TemaUI.Ouro.r, TemaUI.Ouro.g, TemaUI.Ouro.b, 0.55f);
+        borda.effectDistance = new Vector2(3, -3);
+        var sombra = janela.gameObject.AddComponent<Shadow>();
+        sombra.effectColor = new Color(0, 0, 0, 0.5f);
+        sombra.effectDistance = new Vector2(0, -10);
+
+        ConstruirCabecalho(janelaRT);
+
+        // Corpo (a parte que troca a cada página)
+        corpo = TemaUI.Criar("Corpo", janelaRT);
+        corpo.anchorMin = new Vector2(0, 1);
+        corpo.anchorMax = new Vector2(1, 1);
+        corpo.pivot = new Vector2(0.5f, 1);
+        corpo.anchoredPosition = new Vector2(0, -198);
+        corpo.sizeDelta = new Vector2(-112, AlturaCorpo);
+        var v = corpo.gameObject.AddComponent<VerticalLayoutGroup>();
+        v.spacing = EspacoLinhas;
+        v.childAlignment = TextAnchor.UpperCenter;
+        v.childControlWidth = true; v.childControlHeight = true;
+        v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+
+        conteudoGrupo = janela.gameObject.AddComponent<CanvasGroup>();
+
+        ConstruirRodape(janelaRT);
+    }
+
+    private void ConstruirCabecalho(RectTransform janela)
+    {
+        // Círculo do ícone da página
+        iconeCirculo = TemaUI.Painel_(janela, "IconePagina", TemaUI.Ouro);
+        iconeCirculo.sprite = TemaUI.Circulo;
+        iconeCirculo.type = Image.Type.Simple;
+        var irt = iconeCirculo.rectTransform;
+        irt.anchorMin = irt.anchorMax = irt.pivot = new Vector2(0, 1);
+        irt.sizeDelta = new Vector2(104, 104);
+        irt.anchoredPosition = new Vector2(52, -44);
+
+        var fundoIcone = TemaUI.Painel_(irt, "Miolo", TemaUI.Janela);
+        fundoIcone.sprite = TemaUI.Circulo;
+        fundoIcone.type = Image.Type.Simple;
+        TemaUI.Esticar(fundoIcone.rectTransform, 6f);
+        fundoIcone.raycastTarget = false;
+
+        iconeImagem = TemaUI.Criar("Imagem", irt).gameObject.AddComponent<RawImage>();
+        TemaUI.Esticar(iconeImagem.rectTransform, 14f);
+        iconeImagem.raycastTarget = false;
+
+        iconeGlifo = TemaUI.Texto(irt, "", 54, TemaUI.Ouro, FontStyle.Bold, TextAnchor.MiddleCenter);
+        TemaUI.Esticar(iconeGlifo.rectTransform);
+
+        // Contador "COMO JOGAR · 1 de 10"
+        txtContador = TemaUI.Texto(janela, "", TemaUI.TamPequeno, TemaUI.TextoSuave, FontStyle.Bold, TextAnchor.MiddleLeft);
+        var crt = txtContador.rectTransform;
+        crt.anchorMin = new Vector2(0, 1); crt.anchorMax = new Vector2(1, 1); crt.pivot = new Vector2(0, 1);
+        crt.anchoredPosition = new Vector2(180, -34);
+        crt.sizeDelta = new Vector2(-310, 30);
+
+        // Título
+        txtTitulo = TemaUI.Texto(janela, "", 50, TemaUI.Ouro, FontStyle.Bold, TextAnchor.MiddleLeft);
+        TemaUI.ContornoTexto(txtTitulo, TemaUI.SombraVerde, 3f);
+        txtTitulo.horizontalOverflow = HorizontalWrapMode.Overflow;
+        txtTitulo.resizeTextForBestFit = true;
+        txtTitulo.resizeTextMinSize = 34;
+        txtTitulo.resizeTextMaxSize = 50;
+        var trt = txtTitulo.rectTransform;
+        trt.anchorMin = new Vector2(0, 1); trt.anchorMax = new Vector2(1, 1); trt.pivot = new Vector2(0, 1);
+        trt.anchoredPosition = new Vector2(180, -64);
+        trt.sizeDelta = new Vector2(-310, 62);
+        txtTitulo.horizontalOverflow = HorizontalWrapMode.Wrap;
+        txtTitulo.verticalOverflow = VerticalWrapMode.Truncate;
+
+        // Botão fechar (X)
+        var fechar = TemaUI.Botao(janela, "✕", TemaUI.EstiloBotao.Escuro, FecharTutorial, 34);
+        fechar.name = "BotaoFechar";
+        var frt = (RectTransform)fechar.transform;
+        frt.anchorMin = frt.anchorMax = frt.pivot = new Vector2(1, 1);
+        frt.sizeDelta = new Vector2(72, 72);
+        frt.anchoredPosition = new Vector2(-36, -36);
+
+        // Linha divisória dourada + subtítulo
+        var divisoria = TemaUI.Painel_(janela, "Divisoria", new Color(TemaUI.Ouro.r, TemaUI.Ouro.g, TemaUI.Ouro.b, 0.35f));
+        divisoria.sprite = null;
+        var drt = divisoria.rectTransform;
+        drt.anchorMin = new Vector2(0, 1); drt.anchorMax = new Vector2(1, 1); drt.pivot = new Vector2(0.5f, 1);
+        drt.anchoredPosition = new Vector2(0, -180);
+        drt.sizeDelta = new Vector2(-112, 3);
+
+        txtSubtitulo = TemaUI.Texto(janela, "", 28, TemaUI.TextoClaro, FontStyle.Normal, TextAnchor.MiddleLeft);
+        txtSubtitulo.resizeTextForBestFit = true;
+        txtSubtitulo.resizeTextMinSize = 22;
+        txtSubtitulo.resizeTextMaxSize = 28;
+        txtSubtitulo.verticalOverflow = VerticalWrapMode.Truncate;
+        var srt = txtSubtitulo.rectTransform;
+        srt.anchorMin = new Vector2(0, 1); srt.anchorMax = new Vector2(1, 1); srt.pivot = new Vector2(0, 1);
+        srt.anchoredPosition = new Vector2(180, -128);
+        srt.sizeDelta = new Vector2(-236, 40);
+    }
+
+    private void ConstruirRodape(RectTransform janela)
+    {
+        var rodape = TemaUI.Criar("Rodape", janela);
+        rodape.anchorMin = new Vector2(0, 0); rodape.anchorMax = new Vector2(1, 0); rodape.pivot = new Vector2(0.5f, 0);
+        rodape.anchoredPosition = new Vector2(0, 40);
+        rodape.sizeDelta = new Vector2(-112, 84);
+
+        btnVoltar = TemaUI.Botao(rodape, "Voltar", TemaUI.EstiloBotao.Escuro, Voltar);
+        var vrt = (RectTransform)btnVoltar.transform;
+        vrt.anchorMin = vrt.anchorMax = vrt.pivot = new Vector2(0, 0.5f);
+        vrt.sizeDelta = new Vector2(260, 80);
+        vrt.anchoredPosition = Vector2.zero;
+
+        btnProximo = TemaUI.Botao(rodape, "Próximo", TemaUI.EstiloBotao.Destaque, Proximo);
+        var prt = (RectTransform)btnProximo.transform;
+        prt.anchorMin = prt.anchorMax = prt.pivot = new Vector2(1, 0.5f);
+        prt.sizeDelta = new Vector2(260, 80);
+        prt.anchoredPosition = Vector2.zero;
+        txtProximo = btnProximo.GetComponentInChildren<Text>();
+
+        // Bolinhas de página (clicáveis)
+        var pontos = TemaUI.Criar("Paginas", rodape);
+        pontos.anchorMin = pontos.anchorMax = pontos.pivot = new Vector2(0.5f, 0.5f);
+        pontos.sizeDelta = new Vector2(600, 40);
+        var h = pontos.gameObject.AddComponent<HorizontalLayoutGroup>();
+        h.spacing = 14; h.childAlignment = TextAnchor.MiddleCenter;
+        h.childControlWidth = true; h.childControlHeight = true;
+        h.childForceExpandWidth = false; h.childForceExpandHeight = false;
+
+        bolinhas.Clear();
+        for (int i = 0; i < paginas.Count; i++)
         {
-            paginaAtual++;
-            StartCoroutine(TransicaoSlide());
+            int indice = i;
+            var b = TemaUI.Painel_(pontos, "Pagina" + (i + 1), TemaUI.PainelSuave);
+            b.sprite = TemaUI.Arredondado;
+            b.type = Image.Type.Sliced;
+            b.pixelsPerUnitMultiplier = 4f;
+            var le = b.gameObject.AddComponent<LayoutElement>();
+            le.preferredWidth = 22; le.preferredHeight = 22;
+            var btn = b.gameObject.AddComponent<Button>();
+            btn.transition = Selectable.Transition.None;
+            btn.onClick.AddListener(() => IrPara(indice));
+            bolinhas.Add(b);
+        }
+    }
+
+    // =================== PÁGINA ===================
+    private void MostrarPagina()
+    {
+        Pagina p = paginas[paginaAtual];
+
+        txtContador.text = $"COMO JOGAR  •  {paginaAtual + 1} DE {paginas.Count}";
+        txtTitulo.text = p.titulo;
+        txtSubtitulo.text = p.subtitulo;
+
+        iconeCirculo.color = p.cor;
+        Texture2D tex = string.IsNullOrEmpty(p.icone) ? null : Resources.Load<Texture2D>(p.icone);
+        iconeImagem.texture = tex;
+        iconeImagem.enabled = tex != null;
+        iconeGlifo.text = tex != null ? "" : (p.glifo ?? "");
+        iconeGlifo.color = p.cor;
+
+        // Linhas
+        for (int i = corpo.childCount - 1; i >= 0; i--) Destroy(corpo.GetChild(i).gameObject);
+        corpo.DetachChildren();
+        int n = Mathf.Max(1, p.linhas.Count);
+        float altura = Mathf.Min(104f, (AlturaCorpo - EspacoLinhas * (n - 1)) / n);
+        foreach (Linha l in p.linhas) CriarLinha(l, altura);
+
+        // Rodapé
+        bool primeira = paginaAtual == 0, ultima = paginaAtual == paginas.Count - 1;
+        btnVoltar.interactable = !primeira;
+        if (!btnVoltar.TryGetComponent(out CanvasGroup cgVoltar)) cgVoltar = btnVoltar.gameObject.AddComponent<CanvasGroup>();
+        cgVoltar.alpha = primeira ? 0.35f : 1f;
+        txtProximo.text = ultima ? "Começar!" : "Próximo";
+
+        for (int i = 0; i < bolinhas.Count; i++)
+        {
+            bool atual = i == paginaAtual;
+            bolinhas[i].color = atual ? TemaUI.Ouro : (i < paginaAtual ? TemaUI.TextoSuave : TemaUI.PainelSuave);
+            var le = bolinhas[i].GetComponent<LayoutElement>();
+            le.preferredWidth = atual ? 48 : 22;
+        }
+    }
+
+    private void CriarLinha(Linha l, float altura)
+    {
+        var fundo = TemaUI.Painel_(corpo, "Linha_" + l.rotulo, TemaUI.PainelSuave);
+        fundo.raycastTarget = false;
+        var le = fundo.gameObject.AddComponent<LayoutElement>();
+        le.preferredHeight = altura; le.minHeight = altura;
+
+        // Faixa colorida à esquerda
+        var faixa = TemaUI.Painel_(fundo.transform, "Faixa", l.cor);
+        faixa.raycastTarget = false;
+        var frt = faixa.rectTransform;
+        frt.anchorMin = new Vector2(0, 0); frt.anchorMax = new Vector2(0, 1); frt.pivot = new Vector2(0, 0.5f);
+        frt.sizeDelta = new Vector2(10, -16);
+        frt.anchoredPosition = new Vector2(10, 0);
+
+        // Ícone (imagem ou glifo num círculo)
+        float lado = Mathf.Min(altura - 18f, 76f);
+        var chip = TemaUI.Painel_(fundo.transform, "Icone", new Color(l.cor.r, l.cor.g, l.cor.b, 0.22f));
+        chip.sprite = TemaUI.Circulo;
+        chip.type = Image.Type.Simple;
+        chip.raycastTarget = false;
+        var crt = chip.rectTransform;
+        crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(0, 0.5f);
+        crt.sizeDelta = new Vector2(lado, lado);
+        crt.anchoredPosition = new Vector2(34, 0);
+
+        Texture2D tex = string.IsNullOrEmpty(l.icone) ? null : Resources.Load<Texture2D>(l.icone);
+        if (tex != null)
+        {
+            var img = TemaUI.Criar("Imagem", crt).gameObject.AddComponent<RawImage>();
+            img.texture = tex;
+            img.raycastTarget = false;
+            TemaUI.Esticar(img.rectTransform, lado * 0.08f);
         }
         else
         {
-            FecharTutorial();
+            var g = TemaUI.Texto(crt, l.glifo ?? "", Mathf.RoundToInt(lado * 0.5f), l.cor, FontStyle.Bold, TextAnchor.MiddleCenter);
+            TemaUI.Esticar(g.rectTransform);
+            g.resizeTextForBestFit = true;
+            g.resizeTextMinSize = 14;
+            g.resizeTextMaxSize = Mathf.RoundToInt(lado * 0.5f);
         }
+
+        // Rótulo + descrição
+        float x = 34 + lado + 24;
+        var rotulo = TemaUI.Texto(fundo.transform, l.rotulo, 30, ClarearSeEscura(l.cor), FontStyle.Bold, TextAnchor.LowerLeft);
+        var rrt = rotulo.rectTransform;
+        rrt.anchorMin = new Vector2(0, 0.5f); rrt.anchorMax = new Vector2(1, 1);
+        rrt.offsetMin = new Vector2(x, 2); rrt.offsetMax = new Vector2(-24, -6);
+        rotulo.resizeTextForBestFit = true;
+        rotulo.resizeTextMinSize = 20; rotulo.resizeTextMaxSize = 30;
+        rotulo.verticalOverflow = VerticalWrapMode.Truncate;
+
+        var texto = TemaUI.Texto(fundo.transform, l.texto, 25, TemaUI.TextoClaro, FontStyle.Normal, TextAnchor.UpperLeft);
+        var xrt = texto.rectTransform;
+        xrt.anchorMin = new Vector2(0, 0); xrt.anchorMax = new Vector2(1, 0.5f);
+        xrt.offsetMin = new Vector2(x, 4); xrt.offsetMax = new Vector2(-24, -2);
+        texto.resizeTextForBestFit = true;
+        texto.resizeTextMinSize = 18; texto.resizeTextMaxSize = 25;
+        texto.verticalOverflow = VerticalWrapMode.Truncate;
     }
 
-    private void SlideAnterior()
+    /// <summary>Cores escuras/saturadas demais ficam ilegíveis sobre o painel: clareia um pouco o rótulo.</summary>
+    private static Color ClarearSeEscura(Color c)
     {
-        if (paginaAtual > 0)
-        {
-            paginaAtual--;
-            StartCoroutine(TransicaoSlide());
-        }
-    }
-
-    private void AtualizarSlide()
-    {
-        if (paginaAtual < 0 || paginaAtual >= slides.Count) return;
-        SlideTutorial slide = slides[paginaAtual];
-
-        txtIcone.text = slide.icone;
-        txtTitulo.text = slide.titulo;
-        txtConteudo.text = slide.conteudo;
-        headerImage.color = slide.corHeader;
-        txtPagina.text = (paginaAtual + 1) + " / " + slides.Count;
+        float lum = 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;
+        return lum < 0.45f ? Color.Lerp(c, Color.white, 0.35f) : c;
     }
 
     // =================== ANIMAÇÕES ===================
     private IEnumerator AnimarAbertura()
     {
-        if (cardRT == null) yield break;
-        cardRT.localScale = Vector3.zero;
+        janelaRT.localScale = Vector3.one * 0.85f;
+        conteudoGrupo.alpha = 0f;
         float t = 0f;
-        while (t < 0.35f)
+        while (t < 0.25f)
         {
             t += Time.unscaledDeltaTime;
-            float p = t / 0.35f;
-            float ease = 1f + 2.7f * Mathf.Pow(p - 1f, 3f) + 1.7f * Mathf.Pow(p - 1f, 2f);
-            cardRT.localScale = Vector3.one * Mathf.Clamp(ease, 0f, 1.15f);
+            float p = Mathf.Clamp01(t / 0.25f);
+            float ease = 1f + 2.2f * Mathf.Pow(p - 1f, 3f) + 1.2f * Mathf.Pow(p - 1f, 2f);
+            janelaRT.localScale = Vector3.one * Mathf.LerpUnclamped(0.85f, 1f, ease);
+            conteudoGrupo.alpha = p;
             yield return null;
         }
-        cardRT.localScale = Vector3.one;
+        janelaRT.localScale = Vector3.one;
+        conteudoGrupo.alpha = 1f;
     }
 
     private IEnumerator AnimarFechamento()
     {
-        if (cardRT == null) yield break;
         float t = 0f;
-        while (t < 0.2f)
+        while (t < 0.15f && janelaRT != null)
         {
             t += Time.unscaledDeltaTime;
-            cardRT.localScale = Vector3.one * (1f - t / 0.2f);
+            float p = Mathf.Clamp01(t / 0.15f);
+            janelaRT.localScale = Vector3.one * Mathf.Lerp(1f, 0.9f, p);
+            conteudoGrupo.alpha = 1f - p;
             yield return null;
         }
-        if (overlayObj != null) Destroy(overlayObj);
+        if (raiz != null) Destroy(raiz);
+        raiz = null;
+        fechando = false;
     }
 
-    private IEnumerator TransicaoSlide()
+    private IEnumerator TrocarPagina(int indice)
     {
-        // Fade out rápido
-        float t = 0f;
-        CanvasGroup cg = cardObj.GetComponent<CanvasGroup>();
-        if (cg == null) cg = cardObj.AddComponent<CanvasGroup>();
+        trocando = true;
+        int direcao = indice > paginaAtual ? 1 : -1;
+        if (!corpo.TryGetComponent(out CanvasGroup cg)) cg = corpo.gameObject.AddComponent<CanvasGroup>();
+        Vector2 base_ = corpo.anchoredPosition;
 
-        while (t < 0.12f)
+        float t = 0f;
+        while (t < 0.1f)
         {
             t += Time.unscaledDeltaTime;
-            cg.alpha = 1f - (t / 0.12f);
+            float p = Mathf.Clamp01(t / 0.1f);
+            cg.alpha = 1f - p;
+            corpo.anchoredPosition = base_ + new Vector2(-40f * direcao * p, 0);
             yield return null;
         }
 
-        AtualizarSlide();
+        paginaAtual = indice;
+        MostrarPagina();
 
-        // Fade in
         t = 0f;
-        while (t < 0.12f)
+        while (t < 0.14f)
         {
             t += Time.unscaledDeltaTime;
-            cg.alpha = t / 0.12f;
+            float p = Mathf.Clamp01(t / 0.14f);
+            cg.alpha = p;
+            corpo.anchoredPosition = base_ + new Vector2(40f * direcao * (1f - p), 0);
             yield return null;
         }
         cg.alpha = 1f;
-    }
-
-    // =================== UTILITÁRIOS ===================
-    private void Expandir(RectTransform rt)
-    {
-        rt.anchorMin = Vector2.zero;
-        rt.anchorMax = Vector2.one;
-        rt.sizeDelta = Vector2.zero;
-        rt.anchoredPosition = Vector2.zero;
+        corpo.anchoredPosition = base_;
+        trocando = false;
     }
 }

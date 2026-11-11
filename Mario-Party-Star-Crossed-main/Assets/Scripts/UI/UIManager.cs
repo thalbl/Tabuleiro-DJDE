@@ -610,7 +610,7 @@ public class UIManager : MonoBehaviour {
                 if (mostRecentPrompt == "Options" && string.IsNullOrEmpty(mostRecentAns)) {
                     // `choices` é guardada invertida para o layout dos botões; a IA recebe a ordem original
                     // (antes recebia invertida e, sem regra específica, escolhia a ÚLTIMA opção:
-                    // "Não, obrigado" na Estrela, "Nao agora" na Universidade...)
+                    // "Não, obrigado" na Estrela, "Agora não" na Universidade...)
                     List<string> ordemOriginal = new List<string>(choices);
                     ordemOriginal.Reverse();
                     mostRecentAns = decisionAI.Prompt(targetText, ordemOriginal, 0);
