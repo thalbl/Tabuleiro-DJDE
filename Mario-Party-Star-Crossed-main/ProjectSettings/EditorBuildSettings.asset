@@ -17,5 +17,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/MapaRapido.unity
     guid: 84008af25a46bc44f9da35615a5e1831
+  - enabled: 1
+    path: Assets/Scenes/IlhaOportunidades.unity
+    guid: 936f6250688dfa74ab07a991dc7d64e4
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

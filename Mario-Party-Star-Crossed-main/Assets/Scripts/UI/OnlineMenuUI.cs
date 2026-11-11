@@ -293,6 +293,11 @@ public class OnlineMenuUI : MonoBehaviour {
         // Botão Seletor de Mapa (Host alterna, Clientes visualizam)
         btnMapaOnline = CriarBotaoEstilizado(header.transform, "BtnMapaOnline", $"MAPA: {GameMatchConfig.GetMapDisplayName(GameMatchConfig.SelectedMapScene)}", new Vector2(0.18f, 0.25f), new Vector2(320, 40), corBotaoVerde, () => AlternarMapaOnline());
         txtMapaOnline = btnMapaOnline.GetComponentInChildren<Text>();
+        if (txtMapaOnline != null) {
+            txtMapaOnline.resizeTextForBestFit = true;
+            txtMapaOnline.resizeTextMinSize = 11;
+            txtMapaOnline.resizeTextMaxSize = txtMapaOnline.fontSize;
+        }
 
         // Botão Copiar
         CriarBotaoEstilizado(header.transform, "BtnCopiar", "COPIAR", new Vector2(0.72f, 0.25f), new Vector2(110, 40), corBotaoAzul, () => CopiarCodigo());
@@ -824,11 +829,10 @@ public class OnlineMenuUI : MonoBehaviour {
 
     private void AlternarMapaOnline() {
         if (!isHost) return;
-        GameMatchConfig.SelectedMapScene = (GameMatchConfig.SelectedMapScene == "MapaRapido") ? "MVP" : "MapaRapido";
-        if (GameMatchConfig.SelectedMapScene == "MapaRapido" && GameMatchConfig.MaxTurns > 15) {
-            GameMatchConfig.MaxTurns = 15;
-        } else if (GameMatchConfig.SelectedMapScene == "MVP" && GameMatchConfig.MaxTurns < 20) {
-            GameMatchConfig.MaxTurns = 20;
+        GameMatchConfig.SelectedMapScene = GameMatchConfig.ProximoMapa(GameMatchConfig.SelectedMapScene);
+        int sugeridos = GameMatchConfig.TurnosSugeridos(GameMatchConfig.SelectedMapScene);
+        if ((sugeridos < 20 && GameMatchConfig.MaxTurns > sugeridos) || (sugeridos >= 20 && GameMatchConfig.MaxTurns < sugeridos)) {
+            GameMatchConfig.MaxTurns = sugeridos;
         }
         BroadcastLobbyState();
         AtualizarSlotsOnline();

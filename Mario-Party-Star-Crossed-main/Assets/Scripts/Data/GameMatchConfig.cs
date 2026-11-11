@@ -44,10 +44,22 @@ public static class GameMatchConfig {
     // Seed do GameRng gerada pelo host no online (0 = sortear localmente)
     public static int SeedPartida = 0;
 
+    // Mapas na ordem em que o botão "MAPA" do lobby alterna entre eles
+    public static readonly string[] Mapas = { "MVP", "MapaRapido", "IlhaOportunidades" };
+
     public static string GetMapDisplayName(string sceneName) {
         if (sceneName == "MapaRapido") return "CIRCUITO RÁPIDO";
+        if (sceneName == "IlhaOportunidades") return "ILHA DAS OPORTUNIDADES";
         return "CIDADE CLÁSSICA";
     }
+
+    public static string ProximoMapa(string atual) {
+        int i = System.Array.IndexOf(Mapas, atual);
+        return Mapas[(i + 1) % Mapas.Length];
+    }
+
+    // Rodadas sugeridas ao trocar de mapa (o Circuito Rápido é curto; os outros pedem partidas longas)
+    public static int TurnosSugeridos(string mapa) => mapa == "MapaRapido" ? 15 : 20;
 
     public static void ResetToDefault() {
         Slots[0] = new PlayerSlot { name = "Jogador 1", controllerType = ControllerType.LocalHuman, avatarId = 1 };

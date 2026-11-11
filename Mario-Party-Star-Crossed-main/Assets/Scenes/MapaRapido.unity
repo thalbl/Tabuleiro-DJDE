@@ -5603,15 +5603,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2880195954448297964, guid: 5a7093e418aa44bfc9e46ddf33bc7397, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 6.3
+      value: -0.10892391
       objectReference: {fileID: 0}
     - target: {fileID: 2880195954448297964, guid: 5a7093e418aa44bfc9e46ddf33bc7397, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 12.1
+      value: 6.29
       objectReference: {fileID: 0}
     - target: {fileID: 2880195954448297964, guid: 5a7093e418aa44bfc9e46ddf33bc7397, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -2.2000008
+      value: -6.83
       objectReference: {fileID: 0}
     - target: {fileID: 2880195954448297964, guid: 5a7093e418aa44bfc9e46ddf33bc7397, type: 3}
       propertyPath: m_LocalRotation.w
@@ -15961,7 +15961,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2880195954448297964, guid: 5a7093e418aa44bfc9e46ddf33bc7397, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 6.2899995
+      value: 6.29
       objectReference: {fileID: 0}
     - target: {fileID: 2880195954448297964, guid: 5a7093e418aa44bfc9e46ddf33bc7397, type: 3}
       propertyPath: m_LocalPosition.z
@@ -29564,6 +29564,11 @@ MonoBehaviour:
       investments: []
       educationLevel: 0
       lapsCompleted: 0
+      poupanca: 0
+      reserva: 0
+      acoes: 0
+      divida: 0
+      historicoPatrimonio: 
       space: 0
       coinTracking: 
       starTracking: 
@@ -29602,6 +29607,11 @@ MonoBehaviour:
       investments: []
       educationLevel: 0
       lapsCompleted: 0
+      poupanca: 0
+      reserva: 0
+      acoes: 0
+      divida: 0
+      historicoPatrimonio: 
       space: 0
       coinTracking: 
       starTracking: 
@@ -29640,6 +29650,11 @@ MonoBehaviour:
       investments: []
       educationLevel: 0
       lapsCompleted: 0
+      poupanca: 0
+      reserva: 0
+      acoes: 0
+      divida: 0
+      historicoPatrimonio: 
       space: 0
       coinTracking: 
       starTracking: 
@@ -29678,6 +29693,11 @@ MonoBehaviour:
       investments: []
       educationLevel: 0
       lapsCompleted: 0
+      poupanca: 0
+      reserva: 0
+      acoes: 0
+      divida: 0
+      historicoPatrimonio: 
       space: 0
       coinTracking: 
       starTracking: 
@@ -31110,7 +31130,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2880195954448297964, guid: 5a7093e418aa44bfc9e46ddf33bc7397, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 6.2899995
+      value: 6.29
       objectReference: {fileID: 0}
     - target: {fileID: 2880195954448297964, guid: 5a7093e418aa44bfc9e46ddf33bc7397, type: 3}
       propertyPath: m_LocalPosition.z

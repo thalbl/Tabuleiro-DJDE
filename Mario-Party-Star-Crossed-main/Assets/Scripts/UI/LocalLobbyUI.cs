@@ -328,12 +328,15 @@ public class LocalLobbyUI : MonoBehaviour {
         Image imgMapa = mapaObj.AddComponent<Image>();
         imgMapa.sprite = ObterSpriteArredondado(10);
         imgMapa.type = Image.Type.Sliced;
-        imgMapa.color = GameMatchConfig.SelectedMapScene == "MapaRapido" ? corBotaoHumano : corBotaoAtivo;
+        imgMapa.color = CorDoMapa();
 
         Button btnMapa = mapaObj.AddComponent<Button>();
         btnMapa.onClick.AddListener(AlternarMapa);
 
         txtMapaStatus = CriarTextoInterno(mapaObj.transform, $"MAPA: {GameMatchConfig.GetMapDisplayName(GameMatchConfig.SelectedMapScene)}", 18, Color.white, FontStyle.Bold);
+        txtMapaStatus.resizeTextForBestFit = true;
+        txtMapaStatus.resizeTextMinSize = 12;
+        txtMapaStatus.resizeTextMaxSize = 18;
 
         // Label Turnos
         GameObject lblTurnos = new GameObject("LblTurnos");
@@ -539,20 +542,27 @@ public class LocalLobbyUI : MonoBehaviour {
     }
 
     private void AlternarMapa() {
-        GameMatchConfig.SelectedMapScene = (GameMatchConfig.SelectedMapScene == "MapaRapido") ? "MVP" : "MapaRapido";
-        if (GameMatchConfig.SelectedMapScene == "MapaRapido" && GameMatchConfig.MaxTurns > 15) {
-            SelecionarTurnos(15);
-        } else if (GameMatchConfig.SelectedMapScene == "MVP" && GameMatchConfig.MaxTurns < 20) {
-            SelecionarTurnos(20);
+        GameMatchConfig.SelectedMapScene = GameMatchConfig.ProximoMapa(GameMatchConfig.SelectedMapScene);
+        int sugeridos = GameMatchConfig.TurnosSugeridos(GameMatchConfig.SelectedMapScene);
+        if ((sugeridos < 20 && GameMatchConfig.MaxTurns > sugeridos) || (sugeridos >= 20 && GameMatchConfig.MaxTurns < sugeridos)) {
+            SelecionarTurnos(sugeridos);
         }
         AtualizarBotaoMapa();
+    }
+
+    private Color CorDoMapa() {
+        switch (GameMatchConfig.SelectedMapScene) {
+            case "MapaRapido": return corBotaoHumano;
+            case "IlhaOportunidades": return new Color(0.96f, 0.62f, 0.12f, 1f);
+            default: return corBotaoAtivo;
+        }
     }
 
     private void AtualizarBotaoMapa() {
         if (txtMapaStatus != null) {
             txtMapaStatus.text = $"MAPA: {GameMatchConfig.GetMapDisplayName(GameMatchConfig.SelectedMapScene)}";
             Image img = txtMapaStatus.transform.parent.GetComponent<Image>();
-            if (img != null) img.color = GameMatchConfig.SelectedMapScene == "MapaRapido" ? corBotaoHumano : corBotaoAtivo;
+            if (img != null) img.color = CorDoMapa();
         }
     }
 
