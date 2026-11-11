@@ -22,6 +22,7 @@ public abstract class BoardSpace : MonoBehaviour {
         ui = FindObjectOfType<UIManager>();
         game = FindObjectOfType<BoardManager>();
         this.setup();
+        CasaVisual.Preparar(this);
         donePassing = true;
         doneLanding = true;
     }
@@ -47,6 +48,7 @@ public abstract class BoardSpace : MonoBehaviour {
     }
 
     public void landHere(Player p) {
+        CasaVisual.Pulsar(this);
         StartCoroutine(setMGTeam(p));
         StartCoroutine(land(p));
     }

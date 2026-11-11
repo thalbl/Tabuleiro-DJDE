@@ -45,7 +45,7 @@ public class TurnTimerUI : MonoBehaviour {
     }
 
     private void CriarHUDTimer() {
-        Canvas canvas = FindObjectOfType<Canvas>();
+        Canvas canvas = TemaUI.CanvasPrincipal();
         if (canvas == null) return;
 
         if (containerTimer != null) Destroy(containerTimer);

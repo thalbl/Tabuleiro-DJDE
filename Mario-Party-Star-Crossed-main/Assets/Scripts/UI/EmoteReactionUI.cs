@@ -111,7 +111,7 @@ public class EmoteReactionUI : MonoBehaviour {
     }
 
     public void CriarBarraEmotes() {
-        Canvas canvas = FindObjectOfType<Canvas>();
+        Canvas canvas = TemaUI.CanvasPrincipal();
         if (canvas == null) return;
 
         // Se já existir, remove para recriar
@@ -228,7 +228,7 @@ public class EmoteReactionUI : MonoBehaviour {
     }
 
     private IEnumerator AnimarBalaoReacao(int playerSlot, ReacaoConfig config) {
-        Canvas canvas = FindObjectOfType<Canvas>();
+        Canvas canvas = TemaUI.CanvasPrincipal();
         if (canvas == null) yield break;
 
         float scaleFactor = canvas.scaleFactor > 0 ? canvas.scaleFactor : 1f;

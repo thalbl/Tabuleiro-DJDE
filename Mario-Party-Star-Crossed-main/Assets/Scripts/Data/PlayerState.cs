@@ -40,6 +40,8 @@ public class PlayerState : ISerializationCallbackReceiver {
     [SerializeField] private int reserva;    // não rende; paga imprevistos primeiro
     [SerializeField] private int acoes;      // varia com a Bolsa no fim de cada rodada
     [SerializeField] private int divida;     // juros por turno; parcela automática no holerite
+    // Patrimônio líquido no início (índice 0) e ao fim de cada rodada: gráfico da tela de resultado
+    [SerializeField] private List<int> historicoPatrimonio = new List<int>();
 
     // Outros campos...
     [SerializeField] private int space;
@@ -217,6 +219,9 @@ public class PlayerState : ISerializationCallbackReceiver {
     [SerializeField] private int casasDesdeUltimaExperiencia = 0;
     [SerializeField] private int promocoesExperienciaPendentes = 0;
 
+    /// <summary>Casas andadas desde a última promoção por experiência (0..CasasPorPromocaoExperiencia-1).</summary>
+    public int CasasDesdeUltimaExperiencia => casasDesdeUltimaExperiencia;
+
     /// <summary>Promoções por experiência ganhas e ainda não anunciadas (zera ao ler).</summary>
     public int ConsumirPromocoesExperiencia() {
         int n = promocoesExperienciaPendentes;
@@ -311,6 +316,17 @@ public class PlayerState : ISerializationCallbackReceiver {
     public int GetDivida() => divida;
     public int Aplicacoes => poupanca + reserva + acoes;
     public int PatrimonioLiquido => coins + poupanca + reserva + acoes - divida;
+
+    public IReadOnlyList<int> HistoricoPatrimonio => historicoPatrimonio ??= new List<int>();
+
+    /// <summary>Grava o patrimônio do ponto <paramref name="rodada"/> (0 = início da partida).</summary>
+    public void RegistrarPatrimonio(int rodada) {
+        if (historicoPatrimonio == null) historicoPatrimonio = new List<int>();
+        if (rodada < 0) return;
+        // Saves antigos não têm histórico: completa com o valor atual até chegar ao índice
+        while (historicoPatrimonio.Count <= rodada) historicoPatrimonio.Add(PatrimonioLiquido);
+        historicoPatrimonio[rodada] = PatrimonioLiquido;
+    }
 
     /// <summary>Move moedas para um produto. Retorna quanto foi movido de fato.</summary>
     int Aplicar(ref int destino, int valor) {

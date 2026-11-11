@@ -90,6 +90,7 @@ public class Player : MonoBehaviour {
         if (noChequeEspecial > 0) resumoFinanceiro += $"  ·  {noChequeEspecial} no cheque especial";
         if (!string.IsNullOrEmpty(extrato)) resumoFinanceiro += "\n" + extrato;
         ui.Dialogue("Holerite Mensal", resumoFinanceiro, true);
+        Sons.Tocar(liquido >= 0 && noChequeEspecial == 0 ? Sons.Efeito.Ganho : Sons.Efeito.Perda, 0.7f);
         yield return new WaitUntil(() => ui.WaitForDialogueAnswer());
         while (takingTurn) {
             // Limpar descrições de itens antes de mostrar o menu principal

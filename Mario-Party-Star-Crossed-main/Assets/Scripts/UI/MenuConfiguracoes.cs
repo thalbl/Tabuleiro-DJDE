@@ -119,55 +119,61 @@ public class MenuConfiguracoes : MonoBehaviour {
         TemaUI.Esticar(veu.rectTransform);
         janela = veu.gameObject;
 
+        // Janela compacta em duas colunas: a altura se ajusta ao conteúdo (~60% da tela em 16:9)
         var painel = TemaUI.Painel_(veu.transform, "Painel", TemaUI.Janela);
         var prt = painel.rectTransform;
         prt.anchorMin = prt.anchorMax = prt.pivot = new Vector2(0.5f, 0.5f);
-        prt.sizeDelta = new Vector2(940, 990);
+        prt.sizeDelta = new Vector2(LarguraJanela, 0);
         var borda = painel.gameObject.AddComponent<UnityEngine.UI.Outline>();
         borda.effectColor = new Color(TemaUI.Ouro.r, TemaUI.Ouro.g, TemaUI.Ouro.b, 0.55f);
         borda.effectDistance = new Vector2(3, -3);
 
         var layout = painel.gameObject.AddComponent<UnityEngine.UI.VerticalLayoutGroup>();
-        layout.padding = new RectOffset(56, 56, 34, 38);
-        layout.spacing = 8;
+        layout.padding = new RectOffset(44, 44, 22, 30);
+        layout.spacing = 6;
         layout.childControlWidth = true; layout.childControlHeight = true;
         layout.childForceExpandWidth = true; layout.childForceExpandHeight = false;
+        var ajuste = painel.gameObject.AddComponent<UnityEngine.UI.ContentSizeFitter>();
+        ajuste.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
 
         // Cabeçalho
         bool partida = contexto == Contexto.Partida;
-        var titulo = TemaUI.Texto(painel.transform, partida ? "Pausa" : "Configurações", TemaUI.TamTitulo, TemaUI.Ouro, FontStyle.Bold, TextAnchor.MiddleCenter);
+        var titulo = TemaUI.Texto(painel.transform, partida ? "Pausa" : "Configurações", 46, TemaUI.Ouro, FontStyle.Bold, TextAnchor.MiddleCenter);
         TemaUI.ContornoTexto(titulo, TemaUI.SombraVerde, 3f);
-        Altura(titulo.gameObject, 76);
+        Altura(titulo.gameObject, 58);
         if (partida) {
             string sub = GameMatchConfig.IsOnlineMatch
                 ? "Partida online: o jogo continua enquanto você ajusta."
                 : "Jogo pausado. Seu progresso é salvo no início de cada turno.";
-            Altura(TemaUI.Texto(painel.transform, sub, TemaUI.TamPequeno, TemaUI.TextoSuave, FontStyle.Normal, TextAnchor.MiddleCenter).gameObject, 34);
+            Altura(TemaUI.Texto(painel.transform, sub, 22, TemaUI.TextoSuave, FontStyle.Normal, TextAnchor.MiddleCenter).gameObject, 28);
         }
 
-        Secao(painel.transform, "ÁUDIO");
-        Linha(painel.transform, "Volume geral", c => TemaUI.Slider(c, Configuracoes.VolumeGeral, v => Configuracoes.VolumeGeral = v));
-        Linha(painel.transform, "Música", c => TemaUI.Slider(c, Configuracoes.VolumeMusica, v => Configuracoes.VolumeMusica = v));
-        Linha(painel.transform, "Efeitos sonoros", c => TemaUI.Slider(c, Configuracoes.VolumeEfeitos, v => Configuracoes.VolumeEfeitos = v));
+        var colunas = TemaUI.Criar("Colunas", painel.transform);
+        var hc = colunas.gameObject.AddComponent<UnityEngine.UI.HorizontalLayoutGroup>();
+        hc.spacing = 32; hc.childAlignment = TextAnchor.UpperCenter;
+        hc.childControlWidth = true; hc.childControlHeight = true;
+        hc.childForceExpandWidth = true; hc.childForceExpandHeight = false;
+        Transform esquerda = Coluna(colunas), direita = Coluna(colunas);
 
-        Secao(painel.transform, "JOGO");
-        Linha(painel.transform, "Vibração", c => Pequeno(TemaUI.Interruptor(c, Configuracoes.Vibracao, v => Configuracoes.Vibracao = v)));
-        Linha(painel.transform, "Tempo limite por turno (45 s)", c => Pequeno(TemaUI.Interruptor(c, Configuracoes.TimerTurno, v => Configuracoes.TimerTurno = v)));
+        Secao(esquerda, "ÁUDIO");
+        Linha(esquerda, "Volume geral", c => TemaUI.Slider(c, Configuracoes.VolumeGeral, v => Configuracoes.VolumeGeral = v));
+        Linha(esquerda, "Música", c => TemaUI.Slider(c, Configuracoes.VolumeMusica, v => Configuracoes.VolumeMusica = v));
+        Linha(esquerda, "Efeitos sonoros", c => TemaUI.Slider(c, Configuracoes.VolumeEfeitos, v => Configuracoes.VolumeEfeitos = v));
+        Secao(esquerda, "JOGO");
+        Linha(esquerda, "Vibração", c => Pequeno(TemaUI.Interruptor(c, Configuracoes.Vibracao, v => Configuracoes.Vibracao = v)));
+        Linha(esquerda, "Tempo limite (45 s)", c => Pequeno(TemaUI.Interruptor(c, Configuracoes.TimerTurno, v => Configuracoes.TimerTurno = v)));
 
-        Secao(painel.transform, "VÍDEO");
-        Linha(painel.transform, "Qualidade gráfica", c => TemaUI.Segmentado(c, new[] { "Baixa", "Média", "Alta" }, Configuracoes.Qualidade, i => Configuracoes.Qualidade = i));
-        Linha(painel.transform, "Quadros por segundo", c => TemaUI.Segmentado(c, new[] { "30", "60" }, Configuracoes.FpsAlvo >= 60 ? 1 : 0, i => Configuracoes.FpsAlvo = i == 1 ? 60 : 30));
+        Secao(direita, "VÍDEO");
+        Linha(direita, "Qualidade", c => TemaUI.Segmentado(c, new[] { "Baixa", "Média", "Alta" }, Configuracoes.Qualidade, i => Configuracoes.Qualidade = i));
+        Linha(direita, "Quadros/s", c => TemaUI.Segmentado(c, new[] { "30", "60" }, Configuracoes.FpsAlvo >= 60 ? 1 : 0, i => Configuracoes.FpsAlvo = i == 1 ? 60 : 30));
         if (!Application.isMobilePlatform) {
-            Linha(painel.transform, "Tela cheia", c => Pequeno(TemaUI.Interruptor(c, Configuracoes.TelaCheia, v => Configuracoes.TelaCheia = v)));
+            Linha(direita, "Tela cheia", c => Pequeno(TemaUI.Interruptor(c, Configuracoes.TelaCheia, v => Configuracoes.TelaCheia = v)));
         }
 
         // Rodapé
-        var espaco = TemaUI.Criar("Espaco", painel.transform);
-        var le = espaco.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
-        le.flexibleHeight = 1; le.minHeight = 12;
-
+        Altura(TemaUI.Criar("Espaco", painel.transform).gameObject, 10);
         var rodape = TemaUI.Criar("Rodape", painel.transform);
-        Altura(rodape.gameObject, 78);
+        Altura(rodape.gameObject, 66);
         var h = rodape.gameObject.AddComponent<UnityEngine.UI.HorizontalLayoutGroup>();
         h.spacing = 24; h.childControlWidth = true; h.childControlHeight = true;
         h.childForceExpandWidth = true; h.childForceExpandHeight = true;
@@ -219,22 +225,34 @@ public class MenuConfiguracoes : MonoBehaviour {
         le.minHeight = altura; le.preferredHeight = altura; le.flexibleHeight = 0;
     }
 
+    const float LarguraJanela = 1260f;
+
+    static Transform Coluna(Transform pai) {
+        var c = TemaUI.Criar("Coluna", pai);
+        var v = c.gameObject.AddComponent<UnityEngine.UI.VerticalLayoutGroup>();
+        v.spacing = 6;
+        v.childControlWidth = true; v.childControlHeight = true;
+        v.childForceExpandWidth = true; v.childForceExpandHeight = false;
+        return c;
+    }
+
     static void Secao(Transform pai, string nome) {
-        var t = TemaUI.Texto(pai, nome, TemaUI.TamPequeno, TemaUI.Ouro, FontStyle.Bold, TextAnchor.LowerLeft);
-        Altura(t.gameObject, 38);
+        var t = TemaUI.Texto(pai, nome, 22, TemaUI.Ouro, FontStyle.Bold, TextAnchor.LowerLeft);
+        Altura(t.gameObject, 32);
     }
 
     /// <summary>Linha "rótulo à esquerda | controle à direita".</summary>
     static void Linha(Transform pai, string rotulo, System.Action<Transform> criarControle) {
         var linha = TemaUI.Painel_(pai, "Linha_" + rotulo, TemaUI.PainelSuave);
-        Altura(linha.gameObject, 60);
-        var t = TemaUI.Texto(linha.transform, rotulo, TemaUI.TamCorpo - 2, TemaUI.TextoClaro);
-        t.rectTransform.anchorMin = new Vector2(0, 0); t.rectTransform.anchorMax = new Vector2(0.52f, 1);
-        t.rectTransform.offsetMin = new Vector2(24, 0); t.rectTransform.offsetMax = Vector2.zero;
+        Altura(linha.gameObject, 54);
+        var t = TemaUI.Texto(linha.transform, rotulo, 25, TemaUI.TextoClaro);
+        t.resizeTextForBestFit = true; t.resizeTextMinSize = 18; t.resizeTextMaxSize = 25;
+        t.rectTransform.anchorMin = new Vector2(0, 0); t.rectTransform.anchorMax = new Vector2(0.46f, 1);
+        t.rectTransform.offsetMin = new Vector2(20, 0); t.rectTransform.offsetMax = Vector2.zero;
 
         var area = TemaUI.Criar("Controle", linha.transform);
-        area.anchorMin = new Vector2(0.52f, 0); area.anchorMax = new Vector2(1, 1);
-        area.offsetMin = new Vector2(8, 8); area.offsetMax = new Vector2(-18, -8);
+        area.anchorMin = new Vector2(0.46f, 0); area.anchorMax = new Vector2(1, 1);
+        area.offsetMin = new Vector2(8, 7); area.offsetMax = new Vector2(-16, -7);
         criarControle(area);
     }
 
@@ -242,7 +260,7 @@ public class MenuConfiguracoes : MonoBehaviour {
     static void Pequeno(UnityEngine.UI.Toggle tg) {
         var rt = (RectTransform)tg.transform;
         rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1f, 0.5f);
-        rt.sizeDelta = new Vector2(88, 44);
+        rt.sizeDelta = new Vector2(80, 40);
         rt.anchoredPosition = Vector2.zero;
     }
 }

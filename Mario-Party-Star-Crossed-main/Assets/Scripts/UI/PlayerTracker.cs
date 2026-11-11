@@ -34,9 +34,50 @@ public class PlayerTracker : MonoBehaviour {
     // Referência para o menu de detalhes
     private PlayerDetailMenu detailMenu;
 
+    // Feedback de mudanças (Bloco E): o HUD percebe as variações e anima; não mexe em regra nenhuma
+    private bool baseDefinida;
+    private int ultimasMoedas, ultimasEstrelas, ultimaCarreira, ultimaEducacao;
+    private float moedasExibidas;
+
     public void SetPlayer(PlayerState ps) {
         this.tracking = ps;
+        baseDefinida = false;
         AtualizarHeaderJogador();
+    }
+
+    /// <summary>Compara com o quadro anterior e dispara números flutuantes, pulos e sons.</summary>
+    private void DetectarMudancas() {
+        int moedas = tracking.getCoins(), estrelas = tracking.getStars();
+        int carreira = tracking.GetCareerLevel(), educacao = tracking.GetEducationLevel();
+        if (!baseDefinida) {
+            baseDefinida = true;
+            ultimasMoedas = moedas; ultimasEstrelas = estrelas; ultimaCarreira = carreira; ultimaEducacao = educacao;
+            moedasExibidas = moedas;
+            return;
+        }
+
+        int dMoedas = moedas - ultimasMoedas;
+        if (dMoedas != 0) {
+            AvisosTela.Flutuar(coinText.rectTransform, (dMoedas > 0 ? "+" : "−") + Mathf.Abs(dMoedas),
+                dMoedas > 0 ? TemaUI.Verde : TemaUI.Vermelho, 34, new Vector2(95, -6));
+            AvisosTela.Pulo(coinText.transform, dMoedas > 0 ? 0.22f : 0.15f);
+        }
+        if (estrelas > ultimasEstrelas) {
+            AvisosTela.Flutuar(starText.rectTransform, "+" + (estrelas - ultimasEstrelas) + " ★", TemaUI.Ouro, 36, new Vector2(95, -6));
+            AvisosTela.Pulo(starText.transform, 0.3f);
+            Sons.Tocar(Sons.Efeito.Estrela);
+        } else if (estrelas < ultimasEstrelas) {
+            AvisosTela.Flutuar(starText.rectTransform, "−" + (ultimasEstrelas - estrelas) + " ★", TemaUI.Vermelho, 34, new Vector2(95, -6));
+        }
+        if (carreira > ultimaCarreira) {
+            AvisosTela.Flutuar((RectTransform)transform, "Promoção!", TemaUI.Ouro, 38, new Vector2(0, -150));
+            Sons.Tocar(Sons.Efeito.Promocao);
+        }
+        if (educacao > ultimaEducacao) {
+            AvisosTela.Flutuar((RectTransform)transform, "Formatura!", TemaUI.Hex("#C084FC"), 38, new Vector2(0, -150));
+            Sons.Tocar(Sons.Efeito.Formatura);
+        }
+        ultimasMoedas = moedas; ultimasEstrelas = estrelas; ultimaCarreira = carreira; ultimaEducacao = educacao;
     }
 
     void Start() {
@@ -274,7 +315,13 @@ public class PlayerTracker : MonoBehaviour {
             CriarHeaderJogador();
         }
 
-        coinText.text = (tracking.getCoins() < 10 ? "0" : "") + tracking.getCoins();
+        DetectarMudancas();
+        // O número "corre" até o valor novo em vez de pular
+        int alvo = tracking.getCoins();
+        float velocidade = Mathf.Max(30f, Mathf.Abs(alvo - moedasExibidas) * 3.5f);
+        moedasExibidas = Mathf.MoveTowards(moedasExibidas, alvo, velocidade * Time.unscaledDeltaTime);
+        int mostrar = Mathf.RoundToInt(moedasExibidas);
+        coinText.text = (mostrar < 10 && mostrar >= 0 ? "0" : "") + mostrar;
         starText.text = (tracking.getStars() < 10 ? "0" : "") + tracking.getStars();
 
         if (backPanel != null) {

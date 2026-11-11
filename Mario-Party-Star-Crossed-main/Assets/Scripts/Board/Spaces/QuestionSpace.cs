@@ -101,6 +101,7 @@ public class QuestionSpace : BoardSpace {
         PerguntaAtual = null;
 
         if (respostaJogador == pergunta.Correta) {
+            Sons.Tocar(Sons.Efeito.Acerto);
             int moedasRecompensa = 6 + 2 * nivelCarreira;
             int bonusFinanceiro = Mathf.RoundToInt(p.state.GetSalary() * 0.05f);
             for (int i = 0; i < moedasRecompensa; i++) {
@@ -112,6 +113,7 @@ public class QuestionSpace : BoardSpace {
             string texto = string.IsNullOrEmpty(pergunta.Explicacao) ? "Resposta certa!" : pergunta.Explicacao;
             ui.Dialogue($"Correto! +{total} Moedas", texto, true);
         } else {
+            Sons.Tocar(Sons.Efeito.Erro);
             string texto = $"Resposta certa: {pergunta.Correta}";
             if (!string.IsNullOrEmpty(pergunta.Explicacao)) texto += "\n" + pergunta.Explicacao;
             ui.Dialogue("Quase!", texto, true);

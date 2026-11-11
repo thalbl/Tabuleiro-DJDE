@@ -123,6 +123,11 @@ public class BoardManager : MonoBehaviour {
             }
         }
 
+        // Ponto inicial do gráfico de patrimônio
+        if (state.getCurrentTurn() == 0) {
+            foreach (PlayerState ps in players) if (ps != null && ps.HistoricoPatrimonio.Count == 0) ps.RegistrarPatrimonio(0);
+        }
+
         // Verifica se o jogo acabou
         if (state.getCurrentTurn() >= state.getMaxTurns() || CheckCareerLevelComplete()) {
             EndGame();
@@ -231,6 +236,7 @@ public class BoardManager : MonoBehaviour {
         int variacaoBolsa = GameRng.Range(-12, 16);
         foreach (PlayerState ps in players) ps.AtualizarAcoes(variacaoBolsa);
         string noticiaBolsa = $"\nBolsa de valores: {(variacaoBolsa >= 0 ? "+" : "")}{variacaoBolsa}% nesta rodada.";
+        AvisarBolsa(variacaoBolsa);
 
 		// Fim de rodada simplificado - sem despesas automáticas
 		if (ui != null) {
@@ -246,6 +252,7 @@ public class BoardManager : MonoBehaviour {
             ps.setTeam(0);
         }
         state.turnCompleted();
+        foreach (PlayerState ps in players) ps?.RegistrarPatrimonio(state.getCurrentTurn());
         state.SetProximoJogador(0);
         NetworkTurnManager.Instance?.RegistrarFimDeRodada(state.getCurrentTurn(), state);
         state.SaveGame();
@@ -271,6 +278,19 @@ public class BoardManager : MonoBehaviour {
             }
         }
         return false;
+    }
+
+    /// <summary>Faixa no topo + som quando a Bolsa vira a rodada (o diálogo de fim de rodada continua com o número).</summary>
+    private void AvisarBolsa(int variacao) {
+        bool alta = variacao >= 0;
+        int comAcoes = 0;
+        foreach (PlayerState ps in players) if (ps != null && ps.GetAcoes() > 0) comAcoes++;
+        string detalhe = comAcoes == 0
+            ? "Ninguém tem ações ainda. Invista pelo Banco no seu turno."
+            : (alta ? "As ações de quem investiu valorizaram." : "As ações de quem investiu perderam valor.");
+        AvisosTela.Faixa($"Bolsa {(alta ? "+" : "−")}{Mathf.Abs(variacao)}%", detalhe,
+            alta ? TemaUI.Verde : TemaUI.Vermelho, alta ? "↑" : "↓", 3.2f);
+        Sons.Tocar(alta ? Sons.Efeito.BolsaAlta : Sons.Efeito.BolsaBaixa);
     }
 
     private bool AtingiuMeta(PlayerState p) => p != null && p.GetCareerLevel() >= metaCarreira;
@@ -331,6 +351,15 @@ public class BoardManager : MonoBehaviour {
         // Salvar quantidade de jogadores
         PlayerPrefs.SetInt("ActivePlayers", activePlayers);
 
+        // Meta alcançada no meio de uma rodada: acrescenta o ponto final ao gráfico
+        int rodadas = state.getCurrentTurn();
+        foreach (PlayerState ps in players) {
+            if (ps == null) continue;
+            var h = ps.HistoricoPatrimonio;
+            if (h.Count <= rodadas) ps.RegistrarPatrimonio(rodadas);
+            else if (h[h.Count - 1] != ps.PatrimonioLiquido) ps.RegistrarPatrimonio(h.Count);
+        }
+
         for (int i = 0; i < rankedPlayers.Count; i++) {
             int position = i + 1;
             PlayerState player = rankedPlayers[i];
@@ -342,6 +371,10 @@ public class BoardManager : MonoBehaviour {
                 PlayerPrefs.SetInt($"Player{position}EducationLevel", player.GetEducationLevel());
                 PlayerPrefs.SetInt($"Player{position}Stars", player.getStars());
                 PlayerPrefs.SetInt($"Player{position}FinalScore", player.GetFinalScore());
+                // Composição da pontuação e gráfico (tela de resultado)
+                PlayerPrefs.SetInt($"Player{position}CareerLevel", player.GetCareerLevel());
+                PlayerPrefs.SetString($"Player{position}Color", "#" + ColorUtility.ToHtmlStringRGB(player.charColor()));
+                PlayerPrefs.SetString($"Player{position}Historico", string.Join(",", player.HistoricoPatrimonio));
                 string detalhe = player.GetScoreBreakdown();
                 if (AtingiuMeta(player)) {
                     detalhe = $"META DE CARREIRA ALCANÇADA (Nv. {metaCarreira})!\n" + detalhe;

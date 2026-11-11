@@ -21,7 +21,9 @@ public static class TemaUI {
     public static readonly Color TextoClaro = Hex("#F8FAFC");
     public static readonly Color TextoSuave = Hex("#A7C4B5");
     public static readonly Color SombraVerde = Hex("#064E3B");
-    public static readonly Color Veu = new Color(0.02f, 0.08f, 0.05f, 0.72f); // fundo atrás de janelas
+    // Fundo atrás de janelas. O projeto é Linear: a UI mistura em espaço linear, então um véu escuro escurece
+    // bem menos do que o alfa sugere (0.72 deixava a cena com ~57% do brilho; 0.86 deixa com ~40%).
+    public static readonly Color Veu = new Color(0.02f, 0.08f, 0.05f, 0.86f);
     public static readonly Color Janela = Hex("#0F2A1F");               // janelas modais: opaco (contorno não "vaza")
 
     // ------------------------------------------------------------------ tipografia
@@ -109,7 +111,7 @@ public static class TemaUI {
     }
 
     /// <summary>Shadow que não seja Outline (Outline herda de Shadow); cria se não houver. Evita empilhar componentes ao restilizar.</summary>
-    static UnityEngine.UI.Shadow SombraPura(GameObject go) {
+    public static UnityEngine.UI.Shadow SombraPura(GameObject go) {
         foreach (var sh in go.GetComponents<UnityEngine.UI.Shadow>()) if (!(sh is UnityEngine.UI.Outline)) return sh;
         return go.AddComponent<UnityEngine.UI.Shadow>();
     }
@@ -158,6 +160,20 @@ public static class TemaUI {
             t.alignment = TextAnchor.MiddleCenter;
             foreach (var ts in t.GetComponents<UnityEngine.UI.Shadow>()) ts.enabled = false;
         }
+    }
+
+    // ------------------------------------------------------------------ canvas
+    /// <summary>
+    /// Canvas da cena (HUD/diálogos). Ignora os canvases criados em código ("[Pausa]", "[AvisosTela]", "[ComoJogar]"...),
+    /// que ficam por cima: FindObjectOfType&lt;Canvas&gt;() às vezes devolvia um deles e a UI ia parar dentro da pausa.
+    /// </summary>
+    public static Canvas CanvasPrincipal() {
+        Canvas melhor = null;
+        foreach (var c in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) {
+            if (!c.isRootCanvas || c.name.StartsWith("[")) continue;
+            if (melhor == null || c.sortingOrder < melhor.sortingOrder) melhor = c;
+        }
+        return melhor != null ? melhor : UnityEngine.Object.FindFirstObjectByType<Canvas>();
     }
 
     // ------------------------------------------------------------------ fábricas
