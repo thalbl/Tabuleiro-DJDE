@@ -248,6 +248,7 @@ O enum mantém nomes originais; o texto exibido vem de `ItemSpace.itemNames[(int
 - **uGUI legado (`UnityEngine.UI.Text`)**: com Fredoka a entrelinha é alta; caixa de texto baixa demais + `VerticalWrapMode.Truncate` = o texto **some**. Use `Overflow` ou caixa alta o bastante.
 - **Filhos desenham por cima do pai**: fundo criado como filho de um Text cobre o texto (era o bug do "Rodada X/Y" ilegível).
 - **`Outline` sobre imagem semitransparente "mancha" a cor** (as cópias do contorno aparecem através). Janelas modais usam `TemaUI.Janela` (opaco); destaque de vez no HUD é cor de fundo mais clara, não contorno.
+- **Transparência em Linear**: a UI mistura em espaço linear, então véus/sombras escuros semitransparentes escurecem bem menos do que o alfa sugere (preto 50% ≈ 73% do brilho; 72% ≈ 57%). Para escurecer de verdade use alfa alto (`TemaUI.Veu` = 0.86 ≈ 40%). Não é mistura aditiva (já foi medido: preto 60% sobre branco = 0.667).
 - `GetComponent<Shadow>()` pode devolver um `Outline` (herança): use `SombraPura` do TemaUI para não empilhar componentes ao restilizar.
 - **Configurações**: `Data/Configuracoes.cs` (PlayerPrefs `Cfg_*`, aplicado em toda cena) + `UI/MenuConfiguracoes.cs` (pausa no tabuleiro com botão II e Esc/Voltar; "Configurações" no canto do menu principal). Partida local pausa com `Time.timeScale = 0`; online não pausa. Com o menu aberto, `MenuConfiguracoes.Aberto` bloqueia avançar/rolar: use sempre `MobileInputManager.ConfirmarPressionado()` em vez de ler Espaço/toque direto.
 - **Tela de resultado** (`GameOverController`) é montada em código com o tema; a UI antiga da cena é desligada no Start.
@@ -263,6 +264,25 @@ O enum mantém nomes originais; o texto exibido vem de `ItemSpace.itemNames[(int
 - Janela própria (`[ComoJogar]`, canvas overlay ordem 950) feita com o TemaUI: 10 páginas com título, subtítulo e linhas "ícone + rótulo + descrição"; Voltar/Próximo ("Começar!" na última), bolinhas clicáveis, ✕, teclas ←/→/Enter/Esc. Abre pelo botão do menu e na primeira execução (`TutorialVisto`).
 - Números vêm das constantes (`PlayerState.JurosPoupanca`, `JurosDivida`, `ValorEmprestimo`, `LimiteDivida`, `CasasPorPromocaoExperiencia`) e os itens de `ItemSpace.itemNames/itemDescriptions` + `texture/icons/{BoardItem}`: ao mudar uma regra, confira os textos fixos das páginas (pontuação, casas, quiz).
 - Máx. ~7 linhas por página (a altura da linha se ajusta). Em Unity, não use `GetComponent<T>() ?? AddComponent<T>()` (o "null" do Unity não é null em C#); use `TryGetComponent`.
+
+## 9e. Acabamento / feedback (Bloco E, 2026-11-11)
+- **HUD (`PlayerTracker.DetectarMudancas`)**: compara moedas/estrelas/carreira/educação com o quadro anterior e dispara números flutuantes (`AvisosTela.Flutuar`), pulo do número e sons. O contador de moedas "corre" até o valor novo. Não precisa chamar nada nos pontos onde o dinheiro muda.
+- **`AvisosTela`**: `Faixa()` (aviso no topo, abaixo dos cartões; usado pela Bolsa em `BoardManager.AvisarBolsa`), `Flutuar()` e `Pulo()`. Tempo não escalado com passo limitado a 0,1 s.
+- **`Sons`**: efeitos sintetizados em código (Acerto, Erro, Estrela, Promocao, Formatura, BolsaAlta/Baixa, Ganho/Perda), volume = "Efeitos sonoros". Gatilhos: quiz (QuestionSpace), holerite (Player), Bolsa (BoardManager), estrela/promoção/formatura (detectados no HUD), fim de jogo.
+- **Casas (`CasaVisual`)**: cópia em runtime de cada material de casa com emissão (brilho por tipo; Estrela e Carreira "respiram"); `BoardSpace.landHere` chama `CasaVisual.Pulsar` (escala + flash via MaterialPropertyBlock, depois limpa). Os assets de material não são alterados.
+- **Resultado**: `PlayerState.historicoPatrimonio` (índice 0 = início, depois 1 por rodada; vai no save) → `EndGame` grava `Player{n}Historico/CareerLevel/Color` → `GameOverController` mostra barra empilhada da pontuação (mesma escala para todos) e gráfico de linhas; cores parecidas de jogadores são trocadas por outras da paleta (comparação por matiz).
+- Nada disso usa `GameRng` (só apresentação): não afeta o lockstep online.
+
+## 9f. Mapas gerados por código (2026-11-11)
+- **Ilha das Oportunidades** (`IlhaOportunidades.unity`, 3º mapa do lobby): gerada por `Editor/GeradorIlhaOportunidades.cs` (menu Ferramentas > Mapas). Parte da cena do Circuito Rápido (UI, jogadores, BoardManager) e troca todo o tabuleiro. **Não edite a cena à mão**: mude o gerador e gere de novo (ele apaga e recria a cena).
+  - Grade de células (`U = 3.2`); cada `Trecho("tipos", x0,y0,x1,y1)` é uma rua reta com uma casa por célula; `Proxima/Opcao/Saida` ligam `next`/`option`/`nextLoopStart`. Ruas, calçadas e pontes saem das ligações entre células vizinhas.
+  - Anel 1 Vila Aprendiz (atalho arriscado), anel 2 Centro Comercial (um "8" com dois circuitos que se cruzam no portão), anel 3 Distrito Corporativo (atalho pela Avenida Central; portão final promove a cada volta). Rio em L separa os bairros; avenidas de promoção cruzam em pontes.
+  - Portões: Nv1/Edu1/40 (máx 1) → Nv2/Edu1/80 (máx 3) → Nv3/Edu1/150. Meta Nv6. Calibrado com bots: termina por volta da rodada 13–19.
+  - As casas ficam sob `Board/Ilha/Casas` (o registro do BoardManager só vê filhos do `Board`), com escala (0.67, 0.57, 0.67) para igualar o Circuito Rápido. Materiais próprios em `Assets/Materials/IlhaOportunidades`.
+  - Frente dos modelos: pacote `Buildings` olha para −Z (offset 180°), `European Buildings`/Palmov/CubexCube para +Z (`OffsetFrente`).
+- **MVP.unity corrigido (release 1.0.0)**: o MVP original tinha um beco sem saída depois do portão 40, 22 casas soltas empilhadas, trechos com casas sobrepostas e ids repetidos. Foi substituído pela versão corrigida (3º anel ligado por uma bifurcação, pistas paralelas onde os anéis 1 e 2 se cruzavam). O script de correção foi removido (estava no histórico do git).
+- Lobby: `GameMatchConfig.Mapas` / `ProximoMapa` / `TurnosSugeridos` centralizam a lista de mapas (Local e Online).
+- Pela Unity CLI, `eval` que demora mais de 5 s dá timeout no CLI mas continua rodando no Editor (confira o log). Capturas da Scene View só podem ser salvas dentro do projeto.
 
 ## 10. Convenções ao contribuir
 
