@@ -1,4 +1,0 @@
-repository "Cloud Repositories/DJDE-2025@4673776122683@cloud"
-  path "/"
-    br "/main"
-    co "/main"
