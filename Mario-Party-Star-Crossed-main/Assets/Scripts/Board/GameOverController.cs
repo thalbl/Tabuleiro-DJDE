@@ -35,10 +35,7 @@ public class GameOverController : MonoBehaviour {
         var canvas = go.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 10;
-        var scaler = go.AddComponent<UnityEngine.UI.CanvasScaler>();
-        scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0.5f;
+        TemaUI.ConfigurarEscala(go.AddComponent<UnityEngine.UI.CanvasScaler>());
         go.AddComponent<UnityEngine.UI.GraphicRaycaster>();
         if (FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>() == null) {
             var es = new GameObject("EventSystem");
@@ -92,6 +89,9 @@ public class GameOverController : MonoBehaviour {
         // Botão
         var voltar = TemaUI.Botao(fundo.transform, "Voltar ao Menu", TemaUI.EstiloBotao.Destaque, ReturnToMainMenu, 34);
         Posicionar((RectTransform)voltar.transform, 0.5f, 0f, new Vector2(440, 90), new Vector2(0, 50));
+
+        // Conteúdo longe do notch; o fundo e a faixa continuam de borda a borda
+        TemaUI.EnvolverNaAreaSegura(fundo.transform, "Faixa");
 
         Sons.Tocar(Sons.Efeito.Estrela);
     }

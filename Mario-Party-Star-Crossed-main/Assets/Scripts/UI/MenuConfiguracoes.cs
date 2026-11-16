@@ -82,10 +82,7 @@ public class MenuConfiguracoes : MonoBehaviour {
         canvas = gameObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 900;
-        var scaler = gameObject.AddComponent<UnityEngine.UI.CanvasScaler>();
-        scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0.5f;
+        TemaUI.ConfigurarEscala(gameObject.AddComponent<UnityEngine.UI.CanvasScaler>());
         gameObject.AddComponent<UnityEngine.UI.GraphicRaycaster>();
 
         if (contexto == Contexto.Partida) ConstruirBotaoPausa();
@@ -94,7 +91,7 @@ public class MenuConfiguracoes : MonoBehaviour {
     }
 
     void ConstruirBotaoPausa() {
-        var b = TemaUI.Botao(transform, "", TemaUI.EstiloBotao.Escuro, Abrir);
+        var b = TemaUI.Botao(TemaUI.AreaSegura(transform), "", TemaUI.EstiloBotao.Escuro, Abrir);
         b.name = "BotaoPausa";
         var rt = (RectTransform)b.transform;
         rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1f, 1f);

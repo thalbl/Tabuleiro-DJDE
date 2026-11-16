@@ -728,13 +728,10 @@ public class Player : MonoBehaviour {
         Canvas canvas = canvasObj.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 500;
-        var scaler = canvasObj.AddComponent<UnityEngine.UI.CanvasScaler>();
-        scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1280, 720);
-        scaler.matchWidthOrHeight = 0.5f;
+        TemaUI.ConfigurarEscala(canvasObj.AddComponent<UnityEngine.UI.CanvasScaler>(), 1280, 720);
 
         GameObject faixa = new GameObject("Faixa");
-        faixa.transform.SetParent(canvasObj.transform, false);
+        faixa.transform.SetParent(TemaUI.AreaSegura(canvasObj.transform), false);
         var fundo = faixa.AddComponent<UnityEngine.UI.Image>();
         fundo.color = new Color(0.04f, 0.12f, 0.08f, 0.88f);
         fundo.raycastTarget = false;

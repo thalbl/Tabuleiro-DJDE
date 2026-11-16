@@ -51,7 +51,7 @@ public class TurnTimerUI : MonoBehaviour {
         if (containerTimer != null) Destroy(containerTimer);
 
         containerTimer = new GameObject("TurnTimerHUD");
-        containerTimer.transform.SetParent(canvas.transform, false);
+        containerTimer.transform.SetParent(TemaUI.AreaSegura(canvas.transform), false);
 
         canvasGroup = containerTimer.AddComponent<CanvasGroup>();
         canvasGroup.alpha = 0f;

@@ -65,6 +65,19 @@ public static class Configuracoes {
         if (alvo < QualitySettings.names.Length && QualitySettings.GetQualityLevel() != alvo) QualitySettings.SetQualityLevel(alvo, true);
         QualitySettings.vSyncCount = 0;
         Application.targetFrameRate = FpsAlvo;
+        AplicarEscalaRenderMobile();
+    }
+
+    /// <summary>
+    /// Celulares têm tela de altíssima densidade: renderizar o 3D a 100% da resolução nativa
+    /// (ex.: 2400×1080) esquenta o aparelho sem ganho visível. A UI (overlay) continua nítida.
+    /// Só no aparelho: no Editor isto alteraria o asset do URP salvo no projeto.
+    /// </summary>
+    static void AplicarEscalaRenderMobile() {
+        if (!Application.isMobilePlatform) return;
+        if (!(QualitySettings.renderPipeline is UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset urp)) return;
+        float[] escalaPorQualidade = { 0.7f, 0.8f, 0.9f };
+        urp.renderScale = escalaPorQualidade[Mathf.Clamp(Qualidade, 0, 2)];
     }
 
     /// <summary>Música = fontes em loop; efeitos = o resto. O volume original de cada fonte é guardado.</summary>

@@ -176,6 +176,57 @@ public static class TemaUI {
         return melhor != null ? melhor : UnityEngine.Object.FindFirstObjectByType<Canvas>();
     }
 
+    /// <summary>
+    /// Escala padrão de todo canvas: referência 1920×1080 em modo Expand. A área de referência
+    /// sempre cabe inteira na tela; em celulares 19,5:9/20:9 sobra largura (não falta altura) e em
+    /// tablets 4:3 sobra altura.
+    /// </summary>
+    public static void ConfigurarEscala(UnityEngine.UI.CanvasScaler s, float largura = 1920f, float altura = 1080f) {
+        if (s == null) return;
+        s.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        s.referenceResolution = new Vector2(largura, altura);
+        s.screenMatchMode = UnityEngine.UI.CanvasScaler.ScreenMatchMode.Expand;
+    }
+
+    /// <summary>
+    /// Filho do canvas que acompanha <see cref="Screen.safeArea"/> (notch, câmera perfurada, cantos
+    /// arredondados). Botões, textos e cartões vão aqui; véus e fundos de tela cheia ficam no canvas.
+    /// </summary>
+    public static RectTransform AreaSegura(Transform canvas) {
+        if (canvas == null) return null;
+        var existente = canvas.Find(NomeAreaSegura);
+        if (existente != null) return (RectTransform)existente;
+        var rt = Criar(NomeAreaSegura, canvas);
+        Esticar(rt);
+        rt.gameObject.AddComponent<SafeAreaFitter>();
+        return rt;
+    }
+
+    /// <summary>Área segura do canvas principal da cena (HUD/diálogos).</summary>
+    public static Transform RaizHUD() {
+        var c = CanvasPrincipal();
+        return c != null ? AreaSegura(c.transform) : null;
+    }
+
+    /// <summary>
+    /// Move os filhos atuais do canvas para a área segura, mantendo a ordem de desenho.
+    /// Os nomes em <paramref name="manterFora"/> (fundos de tela cheia) continuam no canvas.
+    /// </summary>
+    public static RectTransform EnvolverNaAreaSegura(Transform canvas, params string[] manterFora) {
+        if (canvas == null) return null;
+        var filhos = new System.Collections.Generic.List<Transform>();
+        foreach (Transform t in canvas) {
+            if (t.name == NomeAreaSegura || System.Array.IndexOf(manterFora, t.name) >= 0) continue;
+            filhos.Add(t);
+        }
+        var area = AreaSegura(canvas);
+        if (filhos.Count > 0) area.SetSiblingIndex(filhos[0].GetSiblingIndex());
+        foreach (var t in filhos) t.SetParent(area, false);
+        return area;
+    }
+
+    public const string NomeAreaSegura = "[AreaSegura]";
+
     // ------------------------------------------------------------------ fábricas
     public static RectTransform Criar(string nome, Transform pai) {
         var go = new GameObject(nome, typeof(RectTransform));

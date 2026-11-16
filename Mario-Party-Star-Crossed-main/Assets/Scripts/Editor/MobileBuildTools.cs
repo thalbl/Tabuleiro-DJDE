@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
@@ -13,63 +14,93 @@ public static class MobileBuildTools {
     private const string PackageName = "com.djde.caminhodosucesso";
     private const string GameName = "Caminho do Sucesso";
 
-    private static readonly string[] BuildScenes = new string[] {
-        "Assets/Scenes/StartScene.unity",
-        "Assets/Scenes/MVP.unity",
-        "Assets/Scenes/GameOverScene.unity",
-        "Assets/Scenes/MapaRapido.unity"
-    };
+    /// <summary>
+    /// Cenas habilitadas em File > Build Profiles (a mesma lista do build de PC).
+    /// Antes era uma lista fixa aqui e o mapa Ilha das Oportunidades ficava fora do APK.
+    /// </summary>
+    private static string[] BuildScenes =>
+        EditorBuildSettings.scenes.Where(s => s.enabled && File.Exists(s.path)).Select(s => s.path).ToArray();
 
     [MenuItem("Mobile/1. Configurar Projeto para Mobile (Android)")]
     public static void ConfigureMobileSettings() {
         Debug.Log("[MobileBuildTools] Configurando Player Settings para Android...");
+        var android = NamedBuildTarget.Android;
 
         // Nome do produto e identificador do pacote
         PlayerSettings.productName = GameName;
         PlayerSettings.companyName = "DJDE";
-#if UNITY_2021_2_OR_NEWER
-        PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Android, PackageName);
-#else
-        PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, PackageName);
-#endif
+        PlayerSettings.SetApplicationIdentifier(android, PackageName);
 
-        // Orientações de tela (apenas Paisagem)
-        PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
+        // Orientações de tela (apenas Paisagem) — vale desde a splash, antes de qualquer script rodar
+        PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
         PlayerSettings.allowedAutorotateToLandscapeLeft = true;
         PlayerSettings.allowedAutorotateToLandscapeRight = true;
         PlayerSettings.allowedAutorotateToPortrait = false;
         PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
 
-        // Configurações Android
-        PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel24; // Android 7.0+
-        PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+        // Android 7.1+ (API 25); alvo = maior SDK instalado (exigência da Play Store)
+        PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel25;
+        PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevelAuto;
+
+        // IL2CPP + 64 bits (exigência da Play Store); ARMv7 mantém aparelhos antigos/Android Go
+        PlayerSettings.SetScriptingBackend(android, ScriptingImplementation.IL2CPP);
+        PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64 | AndroidArchitecture.ARMv7;
+
+        // O online usa TCP direto (System.Net.Sockets): garante a permissão INTERNET no manifesto
+        PlayerSettings.Android.forceInternetPermission = true;
+
+        // O notch é tratado pela área segura da UI (TemaUI.AreaSegura)
+        PlayerSettings.Android.renderOutsideSafeArea = true;
 
         AssetDatabase.SaveAssets();
-        Debug.Log("[MobileBuildTools] ✓ Player Settings configurado com sucesso para Paisagem e ARM64!");
+        Debug.Log("[MobileBuildTools] ✓ Player Settings: paisagem, API 25+, IL2CPP, ARM64+ARMv7, INTERNET.");
     }
 
     [MenuItem("Mobile/2. Compilar APK (Desenvolvimento)")]
     public static void BuildAndroidApk() {
+        Compilar(appBundle: false, release: false);
+    }
+
+    /// <summary>
+    /// AAB assinado para a Play Store. Exige a keystore configurada em
+    /// Project Settings > Player > Android > Publishing Settings (a senha não fica no projeto).
+    /// </summary>
+    [MenuItem("Mobile/3. Compilar AAB (Release - Play Store)")]
+    public static void BuildAndroidAab() {
+        if (!PlayerSettings.Android.useCustomKeystore || string.IsNullOrEmpty(PlayerSettings.Android.keystoreName)) {
+            Debug.LogError("[MobileBuildTools] ✗ Configure a keystore em Project Settings > Player > Android > Publishing Settings antes do build de release.");
+            return;
+        }
+        Compilar(appBundle: true, release: true);
+    }
+
+    private static void Compilar(bool appBundle, bool release) {
+        if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Android, BuildTarget.Android)) {
+            Debug.LogError("[MobileBuildTools] ✗ Módulo Android não instalado nesta versão do Unity. Instale pelo Unity Hub: Installs > ⚙ > Add modules > Android Build Support (com OpenJDK e Android SDK & NDK Tools).");
+            return;
+        }
+
         ConfigureMobileSettings();
 
         string outputDir = Path.Combine(Directory.GetCurrentDirectory(), "Builds", "Android");
-        if (!Directory.Exists(outputDir)) {
-            Directory.CreateDirectory(outputDir);
-        }
+        Directory.CreateDirectory(outputDir);
 
-        string apkPath = Path.Combine(outputDir, "CaminhoDoSucesso.apk");
-        Debug.Log($"[MobileBuildTools] Iniciando build do APK em: {apkPath}");
+        string versao = PlayerSettings.bundleVersion;
+        string caminho = Path.Combine(outputDir, appBundle ? $"CaminhoDoSucesso-{versao}.aab" : "CaminhoDoSucesso.apk");
+        EditorUserBuildSettings.buildAppBundle = appBundle;
+        Debug.Log($"[MobileBuildTools] Iniciando build em: {caminho} ({BuildScenes.Length} cenas)");
 
-        BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions {
+        var opcoes = new BuildPlayerOptions {
             scenes = BuildScenes,
-            locationPathName = apkPath,
+            locationPathName = caminho,
             target = BuildTarget.Android,
-            options = BuildOptions.Development | BuildOptions.AllowDebugging
+            options = release ? BuildOptions.None : (BuildOptions.Development | BuildOptions.AllowDebugging)
         };
 
-        var report = BuildPipeline.BuildPlayer(buildPlayerOptions);
+        var report = BuildPipeline.BuildPlayer(opcoes);
+        EditorUserBuildSettings.buildAppBundle = false;
         if (report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded) {
-            Debug.Log($"[MobileBuildTools] ✓ Build concluída com sucesso! Tamanho: {report.summary.totalSize / (1024 * 1024)} MB");
+            Debug.Log($"[MobileBuildTools] ✓ Build concluída! Tamanho: {report.summary.totalSize / (1024 * 1024)} MB");
         } else {
             Debug.LogError($"[MobileBuildTools] ✗ Falha na build: {report.summary.totalErrors} erros encontrados.");
         }

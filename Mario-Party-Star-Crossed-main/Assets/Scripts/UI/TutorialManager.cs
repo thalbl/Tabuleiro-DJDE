@@ -246,10 +246,7 @@ public class TutorialManager : MonoBehaviour
         var canvas = raiz.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 950;
-        var scaler = raiz.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0.5f;
+        TemaUI.ConfigurarEscala(raiz.AddComponent<CanvasScaler>());
         raiz.AddComponent<GraphicRaycaster>();
 
         // Véu: escurece e bloqueia cliques no menu

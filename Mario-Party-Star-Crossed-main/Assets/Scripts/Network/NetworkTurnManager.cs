@@ -87,6 +87,28 @@ public class NetworkTurnManager : MonoBehaviour {
         }
     }
 
+    // ------------------------------------------------------------------ app em segundo plano (mobile)
+    // No celular o Unity congela o loop quando o app sai da tela (trocar de app, bloquear a tela).
+    // Sem isto, um jogador que sai na própria vez trava a partida online para todos: o timer de
+    // turno só anda no Update. Na volta, o tempo real fora da tela entra no timer, e se passou do
+    // limite o timeout normal escolhe por ele (e transmite a escolha).
+    private float pausadoDesde = -1f;
+
+    void OnApplicationPause(bool pausado) {
+        if (pausado) {
+            pausadoDesde = Time.realtimeSinceStartup;
+            PlayerPrefs.Save(); // o Android pode matar o app em segundo plano
+            return;
+        }
+        if (pausadoDesde < 0f) return;
+        float fora = Time.realtimeSinceStartup - pausadoDesde;
+        pausadoDesde = -1f;
+        if (!GameMatchConfig.IsOnlineMatch || !turnoAtivo || TimerPausado) return;
+        if (JogadorAtivoPlayer == null || JogadorAtivoPlayer.state == null || JogadorAtivoPlayer.state.getController() != 0) return;
+        timerTurnoAtual += fora;
+        Debug.Log($"[NetworkTurnManager] App ficou {fora:0.0}s em segundo plano durante a vez local.");
+    }
+
     /// <summary>
     /// Retorna o índice do slot desta máquina (0 para host, 1..3 para clientes).
     /// </summary>

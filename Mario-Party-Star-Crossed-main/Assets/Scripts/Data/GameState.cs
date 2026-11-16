@@ -177,19 +177,48 @@ public class GameState {
         PlayerPrefs.Save();
     }
 
+    // ------------------------------------------------------------------ gravação segura
+    // No celular o sistema pode matar o app (ou a bateria acabar) no meio da gravação. Por isso:
+    // 1) o JSON vai inteiro para ".tmp" (com flush no disco); 2) o save atual vira ".bak";
+    // 3) o ".tmp" assume o nome oficial. Em qualquer ponto há pelo menos uma cópia íntegra,
+    // e a leitura tenta oficial → .tmp → .bak, aceitando só um save válido.
+    private static string CaminhoTmp => SaveFilePath + ".tmp";
+    private static string CaminhoBak => SaveFilePath + ".bak";
+
+    /// <summary>Save utilizável: JSON completo, rodadas definidas e os 4 jogadores com profissão.</summary>
+    private bool Valido() {
+        if (maxTurn <= 0) return false;
+        foreach (PlayerState p in new[] { p1, p2, p3, p4 }) {
+            if (p == null || string.IsNullOrEmpty(p.GetProfissao())) return false;
+        }
+        return true;
+    }
+
+    private static GameState LerArquivo(string caminho) {
+        try {
+            if (!File.Exists(caminho)) return null;
+            string json = File.ReadAllText(caminho);
+            if (string.IsNullOrWhiteSpace(json)) return null;
+            GameState g = JsonUtility.FromJson<GameState>(json);
+            return g != null && g.Valido() ? g : null;
+        } catch (System.Exception e) {
+            Debug.LogWarning($"[GameState] Save ilegível em {caminho}: {e.Message}");
+            return null;
+        }
+    }
+
     public static bool HasSaveGame() {
-        MigrarSaveLegado();
-        return File.Exists(SaveFilePath);
+        return LoadGame() != null;
     }
 
     public static void DeleteSaveGame() {
         MigrarSaveLegado(); // marca a migração como feita antes de apagar
-        try {
-            if (File.Exists(SaveFilePath)) {
-                File.Delete(SaveFilePath);
+        foreach (string caminho in new[] { SaveFilePath, CaminhoTmp, CaminhoBak }) {
+            try {
+                if (File.Exists(caminho)) File.Delete(caminho);
+            } catch (System.Exception e) {
+                Debug.LogWarning($"[GameState] Erro ao deletar save em {caminho}: {e.Message}");
             }
-        } catch (System.Exception e) {
-            Debug.LogWarning($"[GameState] Erro ao deletar save em {SaveFilePath}: {e.Message}");
         }
     }
 
@@ -201,11 +230,28 @@ public class GameState {
             PlayerPrefs.Save();
         }
         string filePath = SaveFilePath;
-        string directoryPath = Path.GetDirectoryName(filePath);
-        if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath)) {
-            Directory.CreateDirectory(directoryPath);
+        try {
+            string directoryPath = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath)) {
+                Directory.CreateDirectory(directoryPath);
+            }
+
+            byte[] dados = System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(this));
+            using (var fs = new FileStream(CaminhoTmp, FileMode.Create, FileAccess.Write, FileShare.None)) {
+                fs.Write(dados, 0, dados.Length);
+                fs.Flush(true); // garante que chegou ao disco antes de trocar os arquivos
+            }
+
+            if (File.Exists(filePath)) {
+                // Só vira backup um save que ainda está bom (não sobrescreve um .bak bom com lixo)
+                if (LerArquivo(filePath) != null) File.Copy(filePath, CaminhoBak, true);
+                File.Delete(filePath);
+            }
+            File.Move(CaminhoTmp, filePath);
+        } catch (System.Exception e) {
+            // Disco cheio, permissão etc.: a partida continua; o último save íntegro permanece
+            Debug.LogWarning($"[GameState] Não foi possível salvar em {filePath}: {e.Message}");
         }
-        File.WriteAllText(filePath, JsonUtility.ToJson(this));
         return filePath;
     }
 
@@ -217,11 +263,18 @@ public class GameState {
         return string.IsNullOrEmpty(scene) ? "MVP" : scene;
     }
 
+    /// <summary>
+    /// Carrega o save mais recente que estiver íntegro (oficial → .tmp completo → .bak).
+    /// Nenhum íntegro = null ("sem save": o Continuar fica desabilitado em vez de travar).
+    /// </summary>
     public static GameState LoadGame() {
         MigrarSaveLegado();
-        string filePath = SaveFilePath;
-        if (File.Exists(filePath)) {
-            return JsonUtility.FromJson<GameState>(File.ReadAllText(filePath));
+        foreach (string caminho in new[] { SaveFilePath, CaminhoTmp, CaminhoBak }) {
+            GameState g = LerArquivo(caminho);
+            if (g != null) {
+                if (caminho != SaveFilePath) Debug.LogWarning($"[GameState] Save principal ausente ou corrompido; usando {Path.GetFileName(caminho)}.");
+                return g;
+            }
         }
         return null;
     }

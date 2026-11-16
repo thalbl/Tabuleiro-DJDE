@@ -74,11 +74,7 @@ public class UIManager : MonoBehaviour {
         // Configura CanvasScaler para manter proporção balanceada e legibilidade em qualquer tela
         CanvasScaler scaler = GetComponent<CanvasScaler>();
         if (scaler == null) scaler = GetComponentInParent<CanvasScaler>();
-        if (scaler != null) {
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080);
-            scaler.matchWidthOrHeight = 0.5f;
-        }
+        TemaUI.ConfigurarEscala(scaler);
 
         // Garante que o gerenciador de entrada e configurações mobile esteja ativo
         MobileInputManager.EnsureExists();
@@ -89,18 +85,22 @@ public class UIManager : MonoBehaviour {
         game = FindObjectOfType<BoardManager>();
         comTime = 0.0f;
 
-        dialogue = transform.Find("Dialogue").gameObject;
-        character = transform.Find("Character").gameObject;
-        yourTurn = transform.Find("Your Turn").gameObject;
-        options = transform.Find("Options").gameObject;
-        standings = transform.Find("Standings").gameObject;
-        counter = transform.Find("Counter").gameObject;
-        spacesLeft = transform.Find("Spaces Left").gameObject;
-        spinner = transform.Find("Spinner").gameObject;
+        // O HUD fica dentro da área segura (CanvasResolutionManager move os filhos para lá no Awake)
+        Transform raiz = transform.Find(TemaUI.NomeAreaSegura);
+        if (raiz == null) raiz = transform;
+
+        dialogue = raiz.Find("Dialogue").gameObject;
+        character = raiz.Find("Character").gameObject;
+        yourTurn = raiz.Find("Your Turn").gameObject;
+        options = raiz.Find("Options").gameObject;
+        standings = raiz.Find("Standings").gameObject;
+        counter = raiz.Find("Counter").gameObject;
+        spacesLeft = raiz.Find("Spaces Left").gameObject;
+        spinner = raiz.Find("Spinner").gameObject;
         turnTracker = standings.transform.Find("Turn").gameObject;
         turnTrackerDrop = turnTracker.transform.Find("Drop").gameObject;
         if (turnTracker != null) {
-            turnTracker.transform.SetParent(this.transform, false);
+            turnTracker.transform.SetParent(raiz, false);
         }
 
         optionA = options.transform.Find("Option A").gameObject;
@@ -193,7 +193,8 @@ public class UIManager : MonoBehaviour {
         // Evento para SAÍDA do mouse (restaura o diálogo)
         var exitEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
         exitEntry.callback = new EventTrigger.TriggerEvent();
-        exitEntry.callback.AddListener((BaseEventData _) => RestoreOriginalDialogue());
+        // No toque o "exit" chega logo ao soltar o dedo: a prévia fica até escolher ou tocar em outra opção
+        exitEntry.callback.AddListener((BaseEventData _) => { if (!ModoToque()) RestoreOriginalDialogue(); });
         trigger.triggers.Add(exitEntry);
 
         // Evento para DES-SELEÇÃO (teclado/controle - restaura o diálogo)
@@ -306,13 +307,16 @@ public class UIManager : MonoBehaviour {
         charsShown = 0;
         this.endOfChain = endOfChain;
         this.mostRecentAns = "";
+        opcaoEmPrevia = -1;
         mostRecentPrompt = "Options";
         ToggleActivity(1, -1, -1, 1, 0, -1, 0, -1);
         this.choices = choices != null ? new List<string>(choices) : new List<string>();
         this.choices.Reverse();
-        if (choiceDescriptions != null && choiceDescriptions.Count != this.choices.Count) {
+        // Descrições só valem para o diálogo a que foram destinadas (não "vazam" para o próximo)
+        if (!descricoesPendentes || choiceDescriptions == null || choiceDescriptions.Count != this.choices.Count) {
             choiceDescriptions = new List<string>();
         }
+        descricoesPendentes = false;
         SetOptions();
         this.targetText = targetText;
         // Armazenar o texto original para restauração
@@ -326,13 +330,16 @@ public class UIManager : MonoBehaviour {
         this.endOfChain = endOfChain;
         SetSpeaker(speaker);
         this.mostRecentAns = "";
+        opcaoEmPrevia = -1;
         mostRecentPrompt = "Options";
         ToggleActivity(1, 1, -1, 1, 0, -1, 0, -1);
         this.choices = choices != null ? new List<string>(choices) : new List<string>();
         this.choices.Reverse();
-        if (choiceDescriptions != null && choiceDescriptions.Count != this.choices.Count) {
+        // Descrições só valem para o diálogo a que foram destinadas (não "vazam" para o próximo)
+        if (!descricoesPendentes || choiceDescriptions == null || choiceDescriptions.Count != this.choices.Count) {
             choiceDescriptions = new List<string>();
         }
+        descricoesPendentes = false;
         SetOptions();
         this.targetText = targetText;
         // Armazenar o texto original para restauração
@@ -344,11 +351,18 @@ public class UIManager : MonoBehaviour {
     public void SetOptionDescriptions(List<string> descriptions) {
         choiceDescriptions = descriptions != null ? new List<string>(descriptions) : new List<string>();
         choiceDescriptions.Reverse(); // alinhar com a ordem invertida das opções
+        // Chamado com um diálogo de opções aberto e sem resposta → vale para ele.
+        // Chamado antes do Dialogue() → fica guardado para o próximo diálogo (só para ele).
+        bool dialogoAberto = mostRecentPrompt == "Options" && string.IsNullOrEmpty(mostRecentAns);
+        descricoesPendentes = !dialogoAberto;
     }
+
+    private bool descricoesPendentes;
 
     // Método para limpar descrições quando apropriado
     public void ClearOptionDescriptions() {
         choiceDescriptions = new List<string>();
+        descricoesPendentes = false;
     }
 
     // Variável para armazenar o texto original do diálogo
@@ -411,6 +425,27 @@ public class UIManager : MonoBehaviour {
         if (rt != null) {
             rt.sizeDelta = new Vector2(larguraDesejada, 62f);
         }
+    }
+
+    // ------------------------------------------------------------------ prévia no toque
+    // No celular não existe "passar o mouse": o 1º toque numa opção com descrição mostra a descrição,
+    // o 2º toque na mesma opção confirma. Opções sem descrição continuam com um toque só.
+    private int opcaoEmPrevia = -1;
+
+    static bool ModoToque() => Application.isMobilePlatform || Input.touchCount > 0;
+
+    private string DescricaoDaOpcao(int i) =>
+        (choiceDescriptions != null && i >= 0 && i < choiceDescriptions.Count) ? choiceDescriptions[i] : "";
+
+    /// <summary>true = pode confirmar a opção agora; false = só mostrou a descrição.</summary>
+    private bool ConfirmarOuPrevisualizar(int i) {
+        if (!ModoToque() || choices == null || i >= choices.Count) return true;
+        string d = DescricaoDaOpcao(i);
+        if (string.IsNullOrEmpty(d) || opcaoEmPrevia == i) return true;
+        opcaoEmPrevia = i;
+        HapticFeedback.Vibrate();
+        ShowOptionDescription(choices[i], d + "\nToque de novo para escolher.");
+        return false;
     }
 
     public void OptionAHovered() {
@@ -657,6 +692,7 @@ public class UIManager : MonoBehaviour {
 
     public void OptionAClicked() {
         if (NetworkTurnManager.Instance != null && !NetworkTurnManager.Instance.PodeJogadorLocalInteragir()) return;
+        if (!ConfirmarOuPrevisualizar(0)) return;
         HapticFeedback.Vibrate();
         mostRecentAns = choices[0];
         NetworkTurnManager.Instance?.NotificarOpcaoEscolhida(mostRecentAns);
@@ -664,6 +700,7 @@ public class UIManager : MonoBehaviour {
 
     public void OptionBClicked() {
         if (NetworkTurnManager.Instance != null && !NetworkTurnManager.Instance.PodeJogadorLocalInteragir()) return;
+        if (!ConfirmarOuPrevisualizar(1)) return;
         HapticFeedback.Vibrate();
         mostRecentAns = choices[1];
         NetworkTurnManager.Instance?.NotificarOpcaoEscolhida(mostRecentAns);
@@ -671,6 +708,7 @@ public class UIManager : MonoBehaviour {
 
     public void OptionCClicked() {
         if (NetworkTurnManager.Instance != null && !NetworkTurnManager.Instance.PodeJogadorLocalInteragir()) return;
+        if (!ConfirmarOuPrevisualizar(2)) return;
         HapticFeedback.Vibrate();
         mostRecentAns = choices[2];
         NetworkTurnManager.Instance?.NotificarOpcaoEscolhida(mostRecentAns);
@@ -678,6 +716,7 @@ public class UIManager : MonoBehaviour {
 
     public void OptionDClicked() {
         if (NetworkTurnManager.Instance != null && !NetworkTurnManager.Instance.PodeJogadorLocalInteragir()) return;
+        if (!ConfirmarOuPrevisualizar(3)) return;
         HapticFeedback.Vibrate();
         mostRecentAns = choices[3];
         NetworkTurnManager.Instance?.NotificarOpcaoEscolhida(mostRecentAns);
@@ -685,6 +724,7 @@ public class UIManager : MonoBehaviour {
 
     public void OptionEClicked() {
         if (NetworkTurnManager.Instance != null && !NetworkTurnManager.Instance.PodeJogadorLocalInteragir()) return;
+        if (!ConfirmarOuPrevisualizar(4)) return;
         HapticFeedback.Vibrate();
         mostRecentAns = choices[4];
         NetworkTurnManager.Instance?.NotificarOpcaoEscolhida(mostRecentAns);
@@ -1018,7 +1058,7 @@ public class UIManager : MonoBehaviour {
         // Obter paddings da Safe Area calculados
         float sidePadding = 40f;
         float bottomPadding = 35f;
-        Rect safeArea = Screen.safeArea;
+        Rect safeArea = AreaSeguraRestante();
         if (Screen.height > 0 && Screen.width > 0) {
             float bottomRatio = safeArea.y / (float)Screen.height;
             float leftRatio = safeArea.x / (float)Screen.width;
@@ -1061,9 +1101,20 @@ public class UIManager : MonoBehaviour {
     /// Ajusta os painéis da HUD para respeitar a Safe Area e cantos arredondados de dispositivos móveis.
     /// Posiciona a caixa de diálogo na base da tela e o título logo acima dela.
     /// </summary>
+    /// <summary>
+    /// Margem do notch que ainda falta descontar. Se o HUD já está dentro da área segura
+    /// (<see cref="TemaUI.AreaSegura"/>), o recuo já foi aplicado pelo pai e conta como tela inteira.
+    /// </summary>
+    Rect AreaSeguraRestante() {
+        var hud = dialogue != null ? dialogue : standings;
+        if (hud != null && hud.GetComponentInParent<SafeAreaFitter>() != null)
+            return new Rect(0, 0, Screen.width, Screen.height);
+        return Screen.safeArea;
+    }
+
     public void AjustarHUDParaSafeArea() {
-        Rect safeArea = Screen.safeArea;
-        lastSafeArea = safeArea;
+        lastSafeArea = Screen.safeArea;
+        Rect safeArea = AreaSeguraRestante();
         lastScreenSize = new Vector2Int(Screen.width, Screen.height);
 
         // Aplica o novo design visual refinado e fontes aumentadas

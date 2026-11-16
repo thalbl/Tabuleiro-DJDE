@@ -52,7 +52,10 @@ public class CanvasResolutionManager : MonoBehaviour
         
         // Configurar Canvas Scaler se não estiver configurado
         SetupCanvasScaler();
-        
+
+        // HUD e diálogos da cena dentro da área segura (notch / cantos arredondados)
+        if (canvas.isRootCanvas) TemaUI.EnvolverNaAreaSegura(transform);
+
         // Inicializar tamanho da tela
         lastScreenSize = new Vector2(Screen.width, Screen.height);
 
@@ -106,14 +109,8 @@ public class CanvasResolutionManager : MonoBehaviour
             canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         }
 
-        if (canvasScaler.screenMatchMode != CanvasScaler.ScreenMatchMode.MatchWidthOrHeight)
-        {
-            canvasScaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-        }
-
-        // Atualizar valores
-        canvasScaler.referenceResolution = new Vector2(referenceResolutionX, referenceResolutionY);
-        canvasScaler.matchWidthOrHeight = matchWidthOrHeightValue;
+        // Expand: a área de referência sempre cabe inteira (telas 20:9 ganham largura, não perdem altura)
+        TemaUI.ConfigurarEscala(canvasScaler, referenceResolutionX, referenceResolutionY);
     }
 
     /// <summary>
@@ -129,9 +126,8 @@ public class CanvasResolutionManager : MonoBehaviour
             isUpdating = true;
 
             // Atualizar resolução de referência se necessário
-            canvasScaler.referenceResolution = new Vector2(referenceResolutionX, referenceResolutionY);
-            canvasScaler.matchWidthOrHeight = matchWidthOrHeightValue;
-            
+            TemaUI.ConfigurarEscala(canvasScaler, referenceResolutionX, referenceResolutionY);
+
             // Forçar atualização do Canvas Scaler apenas se necessário
             if (!canvasScaler.enabled)
             {

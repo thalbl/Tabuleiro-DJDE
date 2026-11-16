@@ -120,7 +120,7 @@ public class EmoteReactionUI : MonoBehaviour {
         }
 
         barraEmotes = new GameObject("BarraEmotes");
-        barraEmotes.transform.SetParent(canvas.transform, false);
+        barraEmotes.transform.SetParent(TemaUI.AreaSegura(canvas.transform), false);
 
         RectTransform rt = barraEmotes.AddComponent<RectTransform>();
         rt.anchorMin = new Vector2(0.5f, 0.04f);

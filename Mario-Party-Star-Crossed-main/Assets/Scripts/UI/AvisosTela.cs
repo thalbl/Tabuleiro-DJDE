@@ -20,11 +20,8 @@ public class AvisosTela : MonoBehaviour {
                 var canvas = go.AddComponent<Canvas>();
                 canvas.renderMode = RenderMode.ScreenSpaceOverlay;
                 canvas.sortingOrder = 800; // acima do HUD, abaixo de pausa/Como Jogar
-                var scaler = go.AddComponent<CanvasScaler>();
-                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-                scaler.referenceResolution = new Vector2(1920, 1080);
-                scaler.matchWidthOrHeight = 0.5f;
-                instancia.raiz = (RectTransform)go.transform;
+                TemaUI.ConfigurarEscala(go.AddComponent<CanvasScaler>());
+                instancia.raiz = TemaUI.AreaSegura(go.transform);
             }
             return instancia;
         }

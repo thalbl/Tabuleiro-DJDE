@@ -91,10 +91,7 @@ public class MainMenuBuilder : MonoBehaviour {
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 100;
 
-        CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0.5f;
+        TemaUI.ConfigurarEscala(canvasObj.AddComponent<CanvasScaler>());
 
         canvasObj.AddComponent<GraphicRaycaster>();
 

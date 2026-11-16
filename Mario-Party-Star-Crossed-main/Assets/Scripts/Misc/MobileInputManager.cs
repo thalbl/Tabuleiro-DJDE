@@ -50,12 +50,12 @@ public class MobileInputManager : MonoBehaviour {
     /// Configura orientações de tela, taxa de quadros e sleep timeout.
     /// </summary>
     public void ApplyMobileSettings() {
-        // Fixar orientação para Paisagem
-        Screen.orientation = ScreenOrientation.LandscapeLeft;
+        // Só paisagem, mas girando entre as duas (quem segura o celular "ao contrário" não vê a tela de cabeça para baixo)
         Screen.autorotateToLandscapeLeft = true;
         Screen.autorotateToLandscapeRight = true;
         Screen.autorotateToPortrait = false;
         Screen.autorotateToPortraitUpsideDown = false;
+        if (Application.isMobilePlatform) Screen.orientation = ScreenOrientation.AutoRotation;
 
         // Impedir tela de dormir
         if (keepScreenAwake) {
