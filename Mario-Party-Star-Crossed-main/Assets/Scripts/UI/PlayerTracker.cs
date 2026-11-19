@@ -42,6 +42,8 @@ public class PlayerTracker : MonoBehaviour {
     public void SetPlayer(PlayerState ps) {
         this.tracking = ps;
         baseDefinida = false;
+        moedasMostradas = estrelasMostradas = colocacaoMostrada = int.MinValue;
+        ultimoNomeAvatar = null;
         AtualizarHeaderJogador();
     }
 
@@ -166,6 +168,9 @@ public class PlayerTracker : MonoBehaviour {
         }
     }
 
+    // Último nome usado nas iniciais: Iniciais() faz Split/Substring/ToUpper e rodava 4x por quadro
+    private string ultimoNomeAvatar;
+
     private void AtualizarAvatar() {
         if (tracking == null || avatarPic == null) return;
         Color cor = tracking.charColor();
@@ -173,8 +178,13 @@ public class PlayerTracker : MonoBehaviour {
         if (avatarFrame != null) avatarFrame.color = Color.Lerp(cor, Color.white, 0.35f);
         if (inicialAvatar != null) {
             string nome = tracking.charName();
-            inicialAvatar.text = Iniciais(nome);
-            inicialAvatar.transform.rotation = Quaternion.identity;
+            if (nome != ultimoNomeAvatar) {
+                ultimoNomeAvatar = nome;
+                inicialAvatar.text = Iniciais(nome);
+            }
+            // Mexer no transform (mesmo com o mesmo valor) marca o canvas para refazer o lote
+            Transform tr = inicialAvatar.transform;
+            if (tr.rotation != Quaternion.identity) tr.rotation = Quaternion.identity;
         }
     }
 
@@ -320,61 +330,59 @@ public class PlayerTracker : MonoBehaviour {
         int alvo = tracking.getCoins();
         float velocidade = Mathf.Max(30f, Mathf.Abs(alvo - moedasExibidas) * 3.5f);
         moedasExibidas = Mathf.MoveTowards(moedasExibidas, alvo, velocidade * Time.unscaledDeltaTime);
+        // Só monta string nova quando o número muda (antes eram 2 strings por painel por quadro)
         int mostrar = Mathf.RoundToInt(moedasExibidas);
-        coinText.text = (mostrar < 10 && mostrar >= 0 ? "0" : "") + mostrar;
-        starText.text = (tracking.getStars() < 10 ? "0" : "") + tracking.getStars();
+        if (mostrar != moedasMostradas) {
+            moedasMostradas = mostrar;
+            coinText.text = (mostrar < 10 && mostrar >= 0 ? "0" : "") + mostrar;
+        }
+        int estrelas = tracking.getStars();
+        if (estrelas != estrelasMostradas) {
+            estrelasMostradas = estrelas;
+            starText.text = (estrelas < 10 ? "0" : "") + estrelas;
+        }
 
         if (backPanel != null) {
             // Destaque da vez: fundo mais claro (contorno sobre painel translúcido "mancha" a cor)
             bool vez = NetworkTurnManager.Instance != null && NetworkTurnManager.Instance.IsTurnoAtivo
                        && NetworkTurnManager.Instance.JogadorAtivoPlayer != null
                        && NetworkTurnManager.Instance.JogadorAtivoPlayer.state == tracking;
-            backPanel.color = vez ? TemaUI.Hex("#2F7A55", 0.94f) : TemaUI.Painel;
+            backPanel.color = vez ? CorPainelVez : TemaUI.Painel;
         }
         AtualizarAvatar();
 
-        switch (tracking.getPlacing()) {
-            case 1:
-                placingText.text = "1º";
-                placingColor.text = "1º";
-                placingColor.color = TemaUI.Ouro;
-                break;
-            case 2:
-                placingText.text = "2º";
-                placingColor.text = "2º";
-                placingColor.color = new Color(0.85f, 0.88f, 0.92f, 1f);
-                break;
-            case 3:
-                placingText.text = "3º";
-                placingColor.text = "3º";
-                placingColor.color = new Color(0.85f, 0.55f, 0.25f, 1f);
-                break;
-            default:
-                placingText.text = "4º";
-                placingColor.text = "4º";
-                placingColor.color = TemaUI.TextoSuave;
-                break;
+        int colocacao = tracking.getPlacing();
+        if (colocacao != colocacaoMostrada) {
+            colocacaoMostrada = colocacao;
+            string rotulo;
+            Color cor;
+            switch (colocacao) {
+                case 1: rotulo = "1º"; cor = TemaUI.Ouro; break;
+                case 2: rotulo = "2º"; cor = CorPrata; break;
+                case 3: rotulo = "3º"; cor = CorBronze; break;
+                default: rotulo = "4º"; cor = TemaUI.TextoSuave; break;
+            }
+            placingText.text = rotulo;
+            placingColor.text = rotulo;
+            placingColor.color = cor;
         }
 
-        if (tracking.getItems().Count >= 1) {
-            itemImg1.texture = items[(int) tracking.getItems()[0]];
-            itemImg1.gameObject.SetActive(true);
-        } else {
-            itemImg1.gameObject.SetActive(false);
-        }
-        if (tracking.getItems().Count >= 2) {
-            itemImg2.texture = items[(int) tracking.getItems()[1]];
-            itemImg2.gameObject.SetActive(true);
-        } else {
-            itemImg2.gameObject.SetActive(false);
-        }
-        if (tracking.getItems().Count >= 3) {
-            itemImg3.texture = items[(int) tracking.getItems()[2]];
-            itemImg3.gameObject.SetActive(true);
-        } else {
-            itemImg3.gameObject.SetActive(false);
-        }
+        List<BoardItem> itens = tracking.getItems();
+        AtualizarItem(itemImg1, itens, 0);
+        AtualizarItem(itemImg2, itens, 1);
+        AtualizarItem(itemImg3, itens, 2);
         shroomStamp.texture = stamps[tracking.getMovement()];
+    }
+
+    private static readonly Color CorPainelVez = TemaUI.Hex("#2F7A55", 0.94f);
+    private static readonly Color CorPrata = new Color(0.85f, 0.88f, 0.92f, 1f);
+    private static readonly Color CorBronze = new Color(0.85f, 0.55f, 0.25f, 1f);
+    private int moedasMostradas = int.MinValue, estrelasMostradas = int.MinValue, colocacaoMostrada = int.MinValue;
+
+    private void AtualizarItem(RawImage img, List<BoardItem> itens, int i) {
+        bool tem = itens.Count > i;
+        if (tem) img.texture = items[(int) itens[i]]; // o setter já ignora textura igual
+        if (img.gameObject.activeSelf != tem) img.gameObject.SetActive(tem);
     }
 
     private void SetupClickable() {

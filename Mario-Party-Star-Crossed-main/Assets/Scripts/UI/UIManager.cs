@@ -42,6 +42,12 @@ public class UIManager : MonoBehaviour {
 
     private int charsShown = 0;
     private string targetText = "";
+    private const float LetrasPorSegundo = 60f;
+    private float letrasAcumuladas;
+    private Text turnTrackerText, turnTrackerDropText;
+    private int rodadaMostrada = int.MinValue, maxRodadasMostrado = int.MinValue;
+    private Image[] spinnerImagens;
+    private int spinnerLocMostrado = int.MinValue;
     private Text dialogueText;
     private Text speakerText;
     private bool endOfChain;
@@ -213,14 +219,31 @@ public class UIManager : MonoBehaviour {
             AjustarHUDParaSafeArea();
         }
 
-        turnTracker.GetComponent<Text>().text = game.state.getTurnText();
-        if (turnTrackerDrop != null && turnTrackerDrop.activeSelf) {
-            turnTrackerDrop.GetComponent<Text>().text = game.state.getTurnText();
+        // Texto da rodada: só monta a string quando a rodada muda (antes eram 2 strings + 2 GetComponent por quadro)
+        int rodada = game.state.getCurrentTurn(), maxRodadas = game.state.getMaxTurns();
+        if (rodada != rodadaMostrada || maxRodadas != maxRodadasMostrado) {
+            rodadaMostrada = rodada;
+            maxRodadasMostrado = maxRodadas;
+            string texto = game.state.getTurnText();
+            if (turnTrackerText == null) turnTrackerText = turnTracker.GetComponent<Text>();
+            turnTrackerText.text = texto;
+            if (turnTrackerDrop != null) {
+                if (turnTrackerDropText == null) turnTrackerDropText = turnTrackerDrop.GetComponent<Text>();
+                turnTrackerDropText.text = texto;
+            }
         }
 
         if (dialogueText.text != targetText) {
-            charsShown += 1;
-            dialogueText.text = targetText.Substring(0, charsShown);
+            // Máquina de escrever por tempo (60 letras/s = o ritmo antigo a 60 FPS), não 1 letra por
+            // quadro: antes a velocidade dependia do FPS escolhido nas Configurações. Usa o tempo
+            // escalado: pausado (timeScale 0) o texto espera; no teste com bots (timeScale 4) acelera junto.
+            letrasAcumuladas += Time.deltaTime * LetrasPorSegundo;
+            int avancar = (int) letrasAcumuladas;
+            if (avancar > 0) {
+                letrasAcumuladas -= avancar;
+                charsShown = Mathf.Min(targetText.Length, charsShown + avancar);
+                dialogueText.text = targetText.Substring(0, charsShown);
+            }
         } else {
             if (WaitForDialogueAnswer()) {
                 if (endOfChain) {
@@ -265,13 +288,18 @@ public class UIManager : MonoBehaviour {
             mostRecentAns = "" + counterStatus;
         }
 
-        outcome1.GetComponent<Image>().color = new Color(1.0f, 1.0f, 1.0f, spinnerLoc == 1 ? 1.0f : 0.5f);
-        outcome2.GetComponent<Image>().color = new Color(1.0f, 1.0f, 1.0f, spinnerLoc == 2 ? 1.0f : 0.5f);
-        outcome3.GetComponent<Image>().color = new Color(1.0f, 1.0f, 1.0f, spinnerLoc == 3 ? 1.0f : 0.5f);
-        outcome4.GetComponent<Image>().color = new Color(1.0f, 1.0f, 1.0f, spinnerLoc == 4 ? 1.0f : 0.5f);
-        outcome5.GetComponent<Image>().color = new Color(1.0f, 1.0f, 1.0f, spinnerLoc == 5 ? 1.0f : 0.5f);
-        outcome6.GetComponent<Image>().color = new Color(1.0f, 1.0f, 1.0f, spinnerLoc == 6 ? 1.0f : 0.5f);
-        outcome7.GetComponent<Image>().color = new Color(1.0f, 1.0f, 1.0f, spinnerLoc == 7 ? 1.0f : 0.5f);
+        // Destaque da roleta: 7 GetComponent por quadro -> só quando a posição muda
+        if (spinnerLoc != spinnerLocMostrado) {
+            spinnerLocMostrado = spinnerLoc;
+            if (spinnerImagens == null) {
+                GameObject[] paineis = { outcome1, outcome2, outcome3, outcome4, outcome5, outcome6, outcome7 };
+                spinnerImagens = new Image[paineis.Length];
+                for (int i = 0; i < paineis.Length; i++) spinnerImagens[i] = paineis[i].GetComponent<Image>();
+            }
+            for (int i = 0; i < spinnerImagens.Length; i++) {
+                spinnerImagens[i].color = new Color(1.0f, 1.0f, 1.0f, spinnerLoc == i + 1 ? 1.0f : 0.5f);
+            }
+        }
     }
 
     public void YourTurn(string character, Color color) {

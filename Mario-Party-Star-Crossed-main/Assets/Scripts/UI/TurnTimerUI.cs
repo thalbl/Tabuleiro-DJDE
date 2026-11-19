@@ -211,33 +211,49 @@ public class TurnTimerUI : MonoBehaviour {
         float progresso = netMgr.ProgressoTimer;
         int segundosInt = Mathf.CeilToInt(restante);
 
-        // Atualizar barra e texto
+        // Atualizar barra e texto (strings só quando o segundo ou o jogador mudam)
         imgFillBarra.fillAmount = progresso;
-        txtTempo.text = $"{segundosInt}s";
+        if (segundosInt != segundosMostrados) {
+            segundosMostrados = segundosInt;
+            txtTempo.text = segundosInt + "s";
+        }
 
         // Nome do jogador ativo
-        string nome = netMgr.JogadorAtivoPlayer != null ? netMgr.JogadorAtivoPlayer.state.charName() : $"Jogador {netMgr.JogadorAtivoIndex + 1}";
-        txtJogador.text = $"Vez de {nome}";
+        Player ativoP = netMgr.JogadorAtivoPlayer;
+        string nome = ativoP != null ? ativoP.state.charName() : null;
+        if (nome != nomeMostrado || (ativoP == null && netMgr.JogadorAtivoIndex != indiceMostrado)) {
+            nomeMostrado = nome;
+            indiceMostrado = netMgr.JogadorAtivoIndex;
+            txtJogador.text = "Vez de " + (nome ?? $"Jogador {netMgr.JogadorAtivoIndex + 1}");
+        }
 
         // Escala 100% estável (SEM NENHUM TREMOR OU EFEITO DE GLITCH)
-        containerRT.localScale = Vector3.one;
+        if (containerRT.localScale != Vector3.one) containerRT.localScale = Vector3.one;
 
-        // Transição suave de cores por faixas de tempo
-        if (progresso > 0.45f) {
-            imgFillBarra.color = corNormal;
-            txtTempo.color = Color.white;
-            outline.effectColor = new Color(0.29f, 0.87f, 0.50f, 0.40f);
-        } else if (progresso > 0.20f) {
-            imgFillBarra.color = corAlerta;
-            txtTempo.color = new Color(1f, 0.92f, 0.60f, 1f);
-            outline.effectColor = new Color(0.96f, 0.62f, 0.04f, 0.45f);
-        } else {
-            // Últimos segundos: destaque vermelho suave e estável
-            imgFillBarra.color = corCritica;
-            txtTempo.color = corCritica;
-            outline.effectColor = new Color(0.94f, 0.27f, 0.27f, 0.60f);
+        // Cores por faixa de tempo. O setter de Outline.effectColor não compara com o valor
+        // atual e refaz a malha do texto: só troca quando a faixa muda.
+        int faixa = progresso > 0.45f ? 0 : (progresso > 0.20f ? 1 : 2);
+        if (faixa != faixaMostrada) {
+            faixaMostrada = faixa;
+            if (faixa == 0) {
+                imgFillBarra.color = corNormal;
+                txtTempo.color = Color.white;
+                outline.effectColor = new Color(0.29f, 0.87f, 0.50f, 0.40f);
+            } else if (faixa == 1) {
+                imgFillBarra.color = corAlerta;
+                txtTempo.color = new Color(1f, 0.92f, 0.60f, 1f);
+                outline.effectColor = new Color(0.96f, 0.62f, 0.04f, 0.45f);
+            } else {
+                // Últimos segundos: destaque vermelho suave e estável
+                imgFillBarra.color = corCritica;
+                txtTempo.color = corCritica;
+                outline.effectColor = new Color(0.94f, 0.27f, 0.27f, 0.60f);
+            }
         }
     }
+
+    private int segundosMostrados = int.MinValue, faixaMostrada = -1, indiceMostrado = int.MinValue;
+    private string nomeMostrado;
 
     private static Sprite ObterSpriteArredondado(int radius) {
         if (spriteCache.TryGetValue(radius, out Sprite cached)) return cached;
